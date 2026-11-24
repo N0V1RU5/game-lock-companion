@@ -24,7 +24,7 @@ vypneš vždycky. Ale přidá přesně tolik tření, abys šel nejdřív dělat
 - **Hry ze Steamu najde sama.** Jakoukoliv jinou hru přidáš výběrem `.exe` nebo složky.
 - **Čeština / angličtina**, **tmavý / světlý** vzhled (nebo podle systému).
 - Ikona u hodin se zbývajícími minutami, varování 10 a 2 min před koncem, statistiky po dnech v Excelu (`stats.xlsx`).
-- **Nenáročná:** ~22 MB RAM, 10 MB ke stažení, hry kontroluje každé 2 s skoro bez zátěže procesoru. Na disk zapisuje, jen když se něco změní.
+- **Nenáročná:** ~22 MB RAM, 9 MB ke stažení na Windows (12 MB macOS, 29 MB Linux), hry kontroluje každé 2 s skoro bez zátěže procesoru. Na disk zapisuje, jen když se něco změní.
 
 <p>
   <img src="docs/screenshots/finish_en_dark.png" width="380" alt="Okno Dohrát zápas">

@@ -24,7 +24,7 @@ always kill it in Task Manager. But it adds just enough friction to make you stu
 - **Steam games are detected automatically.** Add any other game by picking its `.exe` or a folder.
 - **Czech / English**, **dark / light** theme (or follow the system).
 - Tray icon with minutes left, warnings 10 and 2 min before the end, daily stats in Excel (`stats.xlsx`).
-- **Lightweight:** ~22 MB of RAM, a 10 MB download, checks for games every 2 s with almost no CPU. Data is only written to disk when something changes.
+- **Lightweight:** ~22 MB of RAM, a 9 MB download on Windows (12 MB macOS, 29 MB Linux), checks for games every 2 s with almost no CPU. Data is only written to disk when something changes.
 
 <p>
   <img src="docs/screenshots/finish_en_dark.png" width="380" alt="Finish the match popup">
