@@ -8,6 +8,11 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build and upload zips for (e.g. v1.1.0)"
+        required: true
 
 jobs:
   test:
@@ -35,11 +40,12 @@ jobs:
         run: python herni_zamek.pyw --selftest
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: test
     permissions:
       contents: write
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
@@ -53,9 +59,13 @@ jobs:
       - name: Install tray icon dependencies (Linux)
         if: runner.os == 'Linux'
         run: python -m pip install pystray pillow
+      - name: Install Pillow for the .icns icon (macOS, build only, not bundled)
+        if: runner.os == 'macOS'
+        run: python -m pip install pillow
       - name: Build
         run: python tools/build_exe.py
       - name: Upload to the release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: dist/*.zip
