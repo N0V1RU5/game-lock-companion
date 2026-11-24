@@ -7,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+if hasattr(sys.stdout, "reconfigure"):  # české výpisy i v konzoli bez UTF-8 (CI na Windows)
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(ROOT))
 from zamek_core import (MODE_PLAY, MODE_STUDY, GameDetector, Gate, ManualClock,
                         kill_processes, load_json)
