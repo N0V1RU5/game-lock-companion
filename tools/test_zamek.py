@@ -232,15 +232,64 @@ check(any(e.kind == "kill" and "curfew" in e.text for e in evs), "anglicky: hra 
 check(g.stats_rows()[0][0] == "Date", "anglicky: statistiky mají anglickou hlavičku")
 i18n.set_lang("cs")
 
-# --- skutečné zavření procesu (ping.exe jako falešná hra, zabíjí se jen náš PID)
-det.game_exe.add("ping.exe")
-p = subprocess.Popen(["ping", "-n", "60", "127.0.0.1"], stdout=subprocess.DEVNULL)
+# --- macOS a Linux (logika jde testovat na každém systému)
+import zamek_core
+check(det.is_game("Celeste", "/Users/x/Library/Application Support/Steam/steamapps/common/Celeste/Celeste.app/Contents/MacOS/Celeste")
+      is False, "macOS: cesta mimo hlídané složky není hra")
+mac = GameDetector.from_config(dict(DET_CFG, game_roots=["/Users/x/Library/Application Support/Steam/steamapps/common"],
+                                    game_exe=["Minecraft.app"], whitelist_exe=["OBS.app"]))
+check(mac.is_game("Celeste", "/Users/x/Library/Application Support/Steam/steamapps/common/Celeste/Celeste.app/Contents/MacOS/Celeste"),
+      "macOS: hra ve Steam knihovně")
+check(mac.is_game("launcher", "/Applications/Minecraft.app/Contents/MacOS/launcher"), "macOS: přidaná Hra.app")
+check(not mac.is_game("obs", "/Applications/OBS.app/Contents/MacOS/obs"), "macOS: Program.app v Není hra")
+lin = GameDetector.from_config(dict(DET_CFG, game_roots=["/home/x/.local/share/Steam/steamapps/common"]))
+check(lin.is_game("hl2_linux", "/home/x/.local/share/Steam/steamapps/common/Half-Life 2/hl2_linux"), "Linux: nativní hra")
+was_win = zamek_core.IS_WIN
+zamek_core.IS_WIN = False
+proton = lambda: [r"Z:\home\x\.local\share\Steam\steamapps\common\Celeste\Celeste.exe"]
+check(lin.is_game("Celeste.exe", "/home/x/.steam/compat/proton/files/bin/wine64-preloader", proton),
+      "Linux: Windows hra přes Proton (cesta v příkazové řádce)")
+check(not lin.is_game("notepad.exe", "/usr/bin/wine64-preloader", lambda: [r"C:\windows\notepad.exe"]),
+      "Linux: jiný Wine program není hra")
+zamek_core.IS_WIN = was_win
+check(lin.is_game("java", None, lambda: ["java", "-cp", "minecraft.jar"]), "Linux/macOS: Minecraft (java) = hra")
+
+# --- mezipaměť: u známého procesu se cesta k exe nezjišťuje znovu
+calls = []
+class FakeProc:
+    def __init__(self, pid, name): self.pid, self.info = pid, {"name": name}
+    def exe(self): calls.append(self.pid); return r"C:\Windows\notepad.exe"
+    def cmdline(self): return []
+real_iter = zamek_core.psutil.process_iter
+zamek_core.psutil.process_iter = lambda attrs=None: [FakeProc(10, "notepad.exe"), FakeProc(11, "PUBG.exe")]
+cdet = GameDetector.from_config(dict(DET_CFG, game_exe=["PUBG.exe"]))
+r1, r2 = cdet.find_running(), cdet.find_running()
+zamek_core.psutil.process_iter = real_iter
+check(r1 == r2 == [(11, "PUBG.exe")] and calls.count(10) == 1, "hledání her si pamatuje známé procesy")
+
+# --- ukládání jen při změně
+g, c = new_gate()
+g.save()
+t0 = g.data_path.stat().st_mtime_ns
+time.sleep(0.05)
+g.save()
+check(g.data_path.stat().st_mtime_ns == t0, "beze změny se data znovu nezapisují")
+g.today()["study_sec"] += 120
+g.save()
+check(g.data_path.stat().st_mtime_ns != t0, "po změně se data zapíšou")
+
+# --- skutečné zavření procesu (falešná hra = náš Python s sleep, zabíjí se jen jeho PID)
+import psutil
+p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+time.sleep(0.5)
+fake_name = psutil.Process(p.pid).name()
+kdet = GameDetector.from_config(dict(DET_CFG, game_exe=[fake_name]))
 found = []
 for _ in range(20):
-    time.sleep(0.25)
-    found = [x for x in det.find_running() if x[0] == p.pid]
+    found = [x for x in kdet.find_running() if x[0] == p.pid]
     if found:
         break
+    time.sleep(0.25)
 check(bool(found), "běžící falešná hra je nalezena")
 failed = kill_processes(found)
 time.sleep(1)

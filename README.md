@@ -1,6 +1,6 @@
 # Game Lock Companion 🎵
 
-**Study first, then games.** A small Windows app that won't let you play until you've studied.
+**Study first, then games.** A small app for Windows, macOS and Linux that won't let you play until you've studied.
 Every minute you study earns you play time. Miku keeps you company, cheers you on and closes
 games when time is up.
 
@@ -22,15 +22,18 @@ always kill it in Task Manager. But it adds just enough friction to make you stu
 - **Finish the match.** When time runs out mid-game, you get 90 s to click *Finish match* (max 20 min, once a day). Borrowed minutes are taken from tomorrow.
 - **Exception** with a written reason and a 10-minute wait (once a day).
 - **Steam games are detected automatically.** Add any other game by picking its `.exe` or a folder.
-- **Czech / English**, **dark / light** theme (or follow Windows).
+- **Czech / English**, **dark / light** theme (or follow the system).
 - Tray icon with minutes left, warnings 10 and 2 min before the end, daily stats in Excel (`stats.xlsx`).
+- **Lightweight:** ~22 MB of RAM, a 10 MB download, checks for games every 2 s with almost no CPU. Data is only written to disk when something changes.
 
 <p>
   <img src="docs/screenshots/finish_en_dark.png" width="380" alt="Finish the match popup">
   <img src="docs/screenshots/settings_en_light.png" width="300" alt="Settings">
 </p>
 
-## Install (Windows 10/11)
+## Install
+
+### Windows 10/11
 
 1. Download **`GameLockCompanion-windows.zip`** from [Releases](https://github.com/N0V1RU5/game-lock-companion/releases/latest).
 2. Unzip the whole folder somewhere permanent, e.g. `Documents\GameLockCompanion` (not Downloads). Keep the `_internal` folder next to the exe.
@@ -40,14 +43,29 @@ always kill it in Task Manager. But it adds just enough friction to make you stu
 
 <img src="docs/screenshots/first_en_dark.png" width="300" alt="Language choice on first start">
 
-### Run from source
+### macOS and Linux
 
-```powershell
-python -m pip install psutil pystray pillow
-pythonw herni_zamek.pyw
+Download `GameLockCompanion-macos.zip` or `GameLockCompanion-linux.zip` from
+[Releases](https://github.com/N0V1RU5/game-lock-companion/releases/latest), unzip it and run `GameLockCompanion`,
+or run it from source (below). Turn on **Start when I log in** in **⚙ Settings**.
+
+- **macOS:** there is no menu-bar icon; the app lives in the Dock and closing the window minimises it.
+  The first start may be blocked by Gatekeeper: right-click the app → *Open*.
+- **Linux:** the tray icon needs a system tray (KDE, Xfce, Cinnamon; on GNOME the *AppIndicator* extension).
+  Without one the app minimises to the taskbar.
+
+### Run from source (all systems)
+
+Python 3.10+ with Tk.
+
+```bash
+python -m pip install psutil            # Windows and macOS
+python -m pip install psutil pystray pillow   # Linux (tray icon)
+python herni_zamek.pyw
 ```
 
-Python 3.10+. To start it with Windows, put a shortcut to `herni_zamek.pyw` into `shell:startup`.
+Linux may need Tk first: `sudo apt install python3-tk`. On Windows use `pythonw` to run without a console
+window, and put a shortcut to `herni_zamek.pyw` into `shell:startup` to start it with Windows.
 
 ## How it works
 
@@ -59,12 +77,14 @@ Python 3.10+. To start it with Windows, put a shortcut to `herni_zamek.pyw` into
 
 - Play time is per day and resets at midnight (no saving up for the weekend).
 - The app checks running games every 2 s. After you close a game it switches from *Playing* back to *Something else*.
-- Games with anti-cheat (Rainbow Six / BattlEye, EAC) can't be force-killed, so the app closes them like Alt+F4.
+- Games with anti-cheat (Rainbow Six / BattlEye, EAC) can't be force-killed on Windows, so the app closes them like Alt+F4.
 
 ### What counts as a game
 
-- Everything inside Steam libraries (`steamapps\common`) when *Automatically watch all Steam games* is on.
-- Every `.exe` and folder you add in **Settings**.
+- Everything inside Steam libraries (`steamapps/common`) when *Automatically watch all Steam games* is on.
+  Steam is found automatically on Windows, macOS and Linux (including Flatpak and Snap), and on Linux also
+  Windows games running through Proton.
+- Every game and folder you add in **Settings** (`.exe` on Windows, an app or program on macOS and Linux).
 - Minecraft Java: add `"minecraft"` to `java_keywords` in `config.json`.
 - **Never closed:** programs in *Not a game*, anything with `server` in its name, Steam tools like Wallpaper Engine.
 
@@ -96,13 +116,16 @@ Miku's lines are in `personas.json` (`cs` and `en`, `{min}` = minutes). Images a
 
 ## Development
 
-```powershell
-python tools/test_zamek.py      # rules tests
-python tools/screenshots.py     # README screenshots
-python tools/build_exe.py       # exe + zip into dist/ (needs pyinstaller)
+```bash
+python tools/test_zamek.py          # rules tests
+python herni_zamek.pyw --selftest   # opens the windows once and exits (0 = OK)
+python tools/screenshots.py         # README screenshots (Windows)
+python tools/build_exe.py           # app + zip into dist/ for the current system (needs pyinstaller)
 ```
 
-`zamek_core.py` has the rules (no GUI), `herni_zamek.pyw` the window and tray icon, `i18n.py` the texts.
+`zamek_core.py` has the rules (no GUI), `herni_zamek.pyw` the window and tray icon, `win_tray.py` the
+Windows tray icon (plain Win32 API, no extra libraries), `i18n.py` the texts. GitHub Actions run the tests on
+Windows, macOS and Linux, and a `v*` tag builds the three zips into the release.
 
 ## License
 

@@ -21,16 +21,13 @@ from tkinter import filedialog, messagebox
 
 from i18n import LANGS, T, get_lang, set_lang
 from zamek_core import (
-    HERE, MODE_OTHER, MODE_PLAY, MODE_SERIES, MODE_STUDY,
+    HERE, IS_MAC, IS_WIN, MODE_OTHER, MODE_PLAY, MODE_SERIES, MODE_STUDY,
     Clock, GameDetector, Gate, fmt_min, kill_processes, load_config, mode_label, psutil, save_config, load_json,
 )
 
-try:
-    import pystray
-    from PIL import Image, ImageDraw, ImageFont
-except ImportError:  # bez toho appka funguje, jen nemá ikonu u hodin
-    pystray = None
-    Image = None
+# Ikona u hodin (pystray + Pillow) se načítá až při startu ikony, ať appka bez ní šetří RAM.
+# Na macOS se pystray nesnese s Tk (obojí chce hlavní vlákno), tam appka běží v Docku.
+TRAY_OK = not IS_MAC
 
 # ------------------------------------------------------------------ vzhled (Miku)
 THEMES = {
@@ -54,13 +51,23 @@ THEME = "dark"
 
 
 def system_theme() -> str:
+    """Světlý/tmavý vzhled systému (Windows registr, macOS defaults, Linux GNOME gsettings)."""
     try:
-        import winreg
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                            r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize") as k:
-            return "light" if winreg.QueryValueEx(k, "AppsUseLightTheme")[0] else "dark"
-    except OSError:
-        return "dark"
+        if IS_WIN:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize") as k:
+                return "light" if winreg.QueryValueEx(k, "AppsUseLightTheme")[0] else "dark"
+        if IS_MAC:
+            r = subprocess.run(["defaults", "read", "-g", "AppleInterfaceStyle"], capture_output=True, text=True)
+            return "dark" if "dark" in r.stdout.lower() else "light"
+        r = subprocess.run(["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"],
+                           capture_output=True, text=True, timeout=2)
+        if r.returncode == 0:
+            return "dark" if "dark" in r.stdout else "light"
+    except Exception:
+        pass
+    return "dark"
 
 
 def apply_theme(name: str | None):
@@ -72,12 +79,18 @@ def apply_theme(name: str | None):
 
 apply_theme("dark")
 
-FONT = ("Segoe UI", 11)
-FONT_S = ("Segoe UI", 9)
-FONT_B = ("Segoe UI Semibold", 11)
-FONT_BIG = ("Segoe UI Semibold", 20)
-FONT_MID = ("Segoe UI Semibold", 13)
-FONT_TIMER = ("Segoe UI Semibold", 34)
+if IS_WIN:
+    _F, _FB, _W = "Segoe UI", "Segoe UI Semibold", "normal"
+else:  # macOS / Linux: systémová písma, tučnost přes "bold"
+    _F = _FB = "Helvetica Neue" if IS_MAC else "DejaVu Sans"
+    _W = "bold"
+FONT = (_F, 11)
+FONT_S = (_F, 9)
+FONT_B = (_FB, 11, _W)
+FONT_BIG = (_FB, 20, _W)
+FONT_MID = (_FB, 13, _W)
+FONT_TIMER = (_FB, 34, _W)
+FONT_TEXT = (_F, 13)
 
 FALLBACK_PERSONA = {"name": "Miku", "emoji": "🎵", "color": "#39C5BB", "lines": {}}
 
@@ -149,9 +162,7 @@ class Sprites:
                         except tk.TclError:
                             break
                         i += 1
-                    if Image is not None:
-                        with Image.open(path) as im:
-                            delay = max(60, int(im.info.get("duration", 500)))
+                    delay = gif_delay(path)
                 else:
                     frames.append(tk.PhotoImage(file=str(path)))
                 frames = [self._fit(f) for f in frames]
@@ -168,6 +179,18 @@ class Sprites:
         if side > self.MAX_SIDE:
             return img.subsample((side + self.MAX_SIDE - 1) // self.MAX_SIDE)
         return img
+
+
+def gif_delay(path) -> int:
+    """Délka prvního snímku GIFu v ms (Graphic Control Extension), bez načítání Pillow."""
+    try:
+        data = path.read_bytes()
+        i = data.find(b"\x21\xf9\x04")
+        if i >= 0:
+            return max(60, int.from_bytes(data[i + 4:i + 6], "little") * 10 or 500)
+    except OSError:
+        pass
+    return 500
 
 
 class SpriteLabel(tk.Label):
@@ -208,16 +231,34 @@ class SpriteLabel(tk.Label):
 
 
 # ------------------------------------------------------------------ ikona u hodin
+_fonts: dict = {}
+
+
+def _tray_font(size: int):
+    """Tučné písmo pro číslo v ikoně (načte se jednou pro každou velikost)."""
+    from PIL import ImageFont
+    if size not in _fonts:
+        for name in ("segoeuib.ttf", "DejaVuSans-Bold.ttf", "Arial Bold.ttf", "Helvetica.ttc"):
+            try:
+                _fonts[size] = ImageFont.truetype(name, size)
+                break
+            except OSError:
+                continue
+        else:
+            try:
+                _fonts[size] = ImageFont.load_default(size)
+            except TypeError:
+                _fonts[size] = ImageFont.load_default()
+    return _fonts[size]
+
+
 def tray_image(text: str, color: str):
+    from PIL import Image, ImageDraw
     size = 64
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((0, 0, size - 1, size - 1), radius=14, fill=color)
-    fsize = {1: 46, 2: 40, 3: 30}.get(len(text), 24)
-    try:
-        font = ImageFont.truetype("segoeuib.ttf", fsize)
-    except OSError:
-        font = ImageFont.load_default()
+    font = _tray_font({1: 46, 2: 40, 3: 30}.get(len(text), 24))
     box = d.textbbox((0, 0), text, font=font)
     w, h = box[2] - box[0], box[3] - box[1]
     d.text(((size - w) / 2 - box[0], (size - h) / 2 - box[1]), text, font=font, fill="white")
@@ -228,7 +269,25 @@ RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 RUN_NAME = "HerniZamek"
 
 
+FROZEN = getattr(sys, "frozen", False)
+# Windows ze zdrojáků se spouští zástupcem v shell:startup (README), přepínač je jen pro .exe.
+AUTOSTART_OK = FROZEN or not IS_WIN
+
+
+def launch_cmd() -> list[str]:
+    return [sys.executable] if FROZEN else [sys.executable, os.path.abspath(__file__)]
+
+
+def _autostart_file():
+    from pathlib import Path
+    if IS_MAC:
+        return Path.home() / "Library" / "LaunchAgents" / "com.n0v1ru5.gamelockcompanion.plist"
+    return Path.home() / ".config" / "autostart" / "game-lock-companion.desktop"
+
+
 def autostart_enabled() -> bool:
+    if not IS_WIN:
+        return _autostart_file().exists()
     try:
         import winreg
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as k:
@@ -239,16 +298,53 @@ def autostart_enabled() -> bool:
 
 
 def set_autostart(on: bool):
-    """Spouštění se startem Windows (jen pro .exe; zápis do HKCU\\...\\Run)."""
-    import winreg
-    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
-        if on:
-            winreg.SetValueEx(k, RUN_NAME, 0, winreg.REG_SZ, f'"{sys.executable}"')
-        else:
-            try:
-                winreg.DeleteValue(k, RUN_NAME)
-            except OSError:
-                pass
+    """Spouštění po přihlášení: Windows HKCU\\...\\Run, macOS LaunchAgent, Linux ~/.config/autostart."""
+    if IS_WIN:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
+            if on:
+                winreg.SetValueEx(k, RUN_NAME, 0, winreg.REG_SZ, " ".join(f'"{c}"' for c in launch_cmd()))
+            else:
+                try:
+                    winreg.DeleteValue(k, RUN_NAME)
+                except OSError:
+                    pass
+        return
+    f = _autostart_file()
+    if not on:
+        f.unlink(missing_ok=True)
+        return
+    f.parent.mkdir(parents=True, exist_ok=True)
+    cmd = launch_cmd()
+    if IS_MAC:
+        args = "".join(f"<string>{c}</string>" for c in cmd)
+        f.write_text('<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict>'
+                     '<key>Label</key><string>com.n0v1ru5.gamelockcompanion</string>'
+                     f'<key>ProgramArguments</key><array>{args}</array>'
+                     '<key>RunAtLoad</key><true/></dict></plist>\n', encoding="utf-8")
+    else:
+        f.write_text("[Desktop Entry]\nType=Application\nName=Game Lock Companion\n"
+                     f"Exec={' '.join(chr(34) + c + chr(34) for c in cmd)}\nX-GNOME-Autostart-enabled=true\n",
+                     encoding="utf-8")
+
+
+def open_path(path):
+    """Otevře soubor ve výchozí aplikaci (Excel, editor…)."""
+    if IS_WIN:
+        os.startfile(str(path))
+    else:
+        subprocess.Popen(["open" if IS_MAC else "xdg-open", str(path)])
+
+
+def trim_memory():
+    """Windows: vrátí nepoužívanou paměť systému, když je okno schované (načte se zpět, až je potřeba)."""
+    if IS_WIN:
+        try:
+            import ctypes
+            k32 = ctypes.windll.kernel32
+            k32.SetProcessWorkingSetSize(k32.GetCurrentProcess(), ctypes.c_size_t(-1), ctypes.c_size_t(-1))
+        except Exception:
+            pass
 
 
 class Tray:
@@ -258,21 +354,32 @@ class Tray:
         self.q = cmd_q
         self._state = None
         self._last_push = 0.0
-        items = [
-            pystray.MenuItem(T("tray_open"), lambda: self.q.put("open"), default=True),
-            pystray.MenuItem(T("tray_study"), lambda: self.q.put("study")),
-            pystray.MenuItem(T("tray_play"), lambda: self.q.put("play")),
-            pystray.MenuItem(T("tray_stats"), lambda: self.q.put("stats")),
-            pystray.MenuItem(T("tray_settings"), lambda: self.q.put("settings")),
-        ]
-        if getattr(sys, "frozen", False):
-            def toggle(icon, item):
-                try:
-                    set_autostart(not autostart_enabled())
-                except Exception:
-                    log_error(traceback.format_exc())
-            items += [pystray.Menu.SEPARATOR,
-                      pystray.MenuItem(T("tray_autostart"), toggle, checked=lambda item: autostart_enabled())]
+
+        def toggle(*_):
+            try:
+                set_autostart(not autostart_enabled())
+            except Exception:
+                log_error(traceback.format_exc())
+
+        entries = [(T(k), lambda c=c: self.q.put(c)) for k, c in (
+            ("tray_open", "open"), ("tray_study", "study"), ("tray_play", "play"),
+            ("tray_stats", "stats"), ("tray_settings", "settings"))]
+        if AUTOSTART_OK:
+            entries += [None, (T("tray_autostart" if IS_WIN else "set_autostart"), toggle, autostart_enabled)]
+
+        if IS_WIN:  # vlastní ikona přes Win32 API: bez pystray a Pillow (méně RAM i místa)
+            from win_tray import WinTray
+            self.icon = WinTray(T("app_title"), entries, "0", RED)
+            return
+        import pystray  # Linux
+        items = []
+        for e in entries:
+            if e is None:
+                items.append(pystray.Menu.SEPARATOR)
+            elif len(e) > 2:
+                items.append(pystray.MenuItem(e[0], e[1], checked=lambda item, f=e[2]: f()))
+            else:
+                items.append(pystray.MenuItem(e[0], lambda icon, item, f=e[1]: f(), default=not items))
         self.icon = pystray.Icon("herni_zamek", tray_image("0", RED), T("app_title"), pystray.Menu(*items))
         self.icon.run_detached()
 
@@ -285,8 +392,11 @@ class Tray:
         try:
             if not self.icon.visible:
                 return
-            self.icon.icon = tray_image(text, color)
-            self.icon.title = tooltip[:120]
+            if IS_WIN:
+                self.icon.set(text, color, tooltip[:120])
+            else:
+                self.icon.icon = tray_image(text, color)
+                self.icon.title = tooltip[:120]
             self._state = state
             self._last_push = time.monotonic()
         except Exception:
@@ -309,6 +419,9 @@ def single_instance(port: int) -> socket.socket | None:
         return None
 
 
+EXE_TYPES = [("exe", "*.exe")] if IS_WIN else [("*", "*")]
+
+
 def flat_button(parent, text, bg, hover, command, font=FONT_B, fg=None, **kw):
     if fg is None:  # barevná tlačítka mají bílý text, šedá text podle vzhledu
         fg = FG if bg in (CARD, CARD2, BG) else "#FFFFFF"
@@ -322,7 +435,7 @@ def flat_button(parent, text, bg, hover, command, font=FONT_B, fg=None, **kw):
 
 
 def set_icon(win):
-    if THEME == "dark":  # tmavý titulek okna (Windows 10 20H1+ / 11)
+    if THEME == "dark" and IS_WIN:  # tmavý titulek okna (Windows 10 20H1+ / 11)
         try:
             win.update_idletasks()
             hwnd = int(win.wm_frame(), 16)
@@ -355,12 +468,15 @@ class App:
         self.settings_win: tk.Toplevel | None = None
         self._last_kill_notice = 0.0
         self._said_at = 0.0
+        self._saves = 0
         self.cmd_q: queue.Queue = queue.Queue()
         self.tray = None
-        if pystray is not None:
+        if TRAY_OK:
             try:
                 self.tray = Tray(self.cmd_q)
                 atexit.register(self.tray.stop)
+            except ImportError:
+                pass  # bez pystray/Pillow appka funguje, jen nemá ikonu u hodin
             except Exception:
                 log_error(traceback.format_exc())
 
@@ -478,9 +594,14 @@ class App:
             self.root.withdraw()
         else:
             self.root.iconify()
+        self.root.after(3000, trim_memory)
+
+    def visible(self) -> bool:
+        return self.root.state() == "normal"
 
     def bring_to_front(self):
         self.root.deiconify()
+        self.refresh()
         self.root.lift()
         self.root.attributes("-topmost", True)
         self.root.after(1500, lambda: self.root.attributes("-topmost", False))
@@ -511,7 +632,7 @@ class App:
         try:
             self.gate.save()
             path = self.gate.stats_path()
-            os.startfile(str(path))
+            open_path(path)
         except Exception:
             log_error(traceback.format_exc())
             self.notice(T("stats_fail"), "alert")
@@ -707,9 +828,9 @@ class App:
                 lb_games.insert("end", f"{icon} {T('item_' + kind)}: {val}")
 
         def add_exe():
-            path = filedialog.askopenfilename(parent=w, title=T("pick_exe"), filetypes=[("exe", "*.exe")])
+            path = filedialog.askopenfilename(parent=w, title=T("pick_exe"), filetypes=EXE_TYPES)
             if path:
-                name = os.path.basename(path)
+                name = os.path.basename(path.rstrip("/"))
                 if ("exe", name) not in games:
                     games.append(("exe", name))
                 show_games()
@@ -729,7 +850,7 @@ class App:
 
         row = tk.Frame(body, bg=BG)
         row.pack(anchor="w", pady=(6, 0))
-        for text, cmd in ((T("set_add_exe"), add_exe), (T("set_add_dir"), add_dir), (T("set_remove"), remove_game)):
+        for text, cmd in ((T("set_add_exe" if IS_WIN else "set_add_app"), add_exe), (T("set_add_dir"), add_dir), (T("set_remove"), remove_game)):
             flat_button(row, text, CARD2, HOVER2, cmd, font=FONT_S, padx=10, pady=3).pack(side="left", padx=(0, 6))
         show_games()
 
@@ -742,9 +863,10 @@ class App:
                 lb_white.insert("end", f"✅ {name}")
 
         def add_white():
-            path = filedialog.askopenfilename(parent=w, title=T("pick_white"), filetypes=[("exe", "*.exe")])
-            if path and os.path.basename(path) not in white:
-                white.append(os.path.basename(path))
+            path = filedialog.askopenfilename(parent=w, title=T("pick_white"), filetypes=EXE_TYPES)
+            name = os.path.basename(path.rstrip("/")) if path else ""
+            if name and name not in white:
+                white.append(name)
                 show_white()
 
         def remove_white():
@@ -754,15 +876,21 @@ class App:
 
         row = tk.Frame(body, bg=BG)
         row.pack(anchor="w", pady=(6, 0))
-        for text, cmd in ((T("set_add_white"), add_white), (T("set_remove"), remove_white)):
+        for text, cmd in ((T("set_add_white" if IS_WIN else "set_add_app_white"), add_white), (T("set_remove"), remove_white)):
             flat_button(row, text, CARD2, HOVER2, cmd, font=FONT_S, padx=10, pady=3).pack(side="left", padx=(0, 6))
         show_white()
+
+        autostart = tk.BooleanVar(value=AUTOSTART_OK and autostart_enabled())
+        if AUTOSTART_OK:
+            tk.Checkbutton(body, text=T("set_autostart"), variable=autostart, font=FONT, bg=BG, fg=FG,
+                           selectcolor=CARD, activebackground=BG, activeforeground=FG,
+                           highlightthickness=0).pack(anchor="w", pady=(12, 0))
 
         row = tk.Frame(body, bg=BG)
         row.pack(fill="x", pady=(14, 0))
         tk.Label(row, text=T("set_rules_hint"), font=FONT_S, bg=BG, fg=MUTED, wraplength=280,
                  justify="left").pack(side="left")
-        flat_button(row, T("set_open_config"), CARD2, HOVER2, lambda: os.startfile(str(HERE / "config.json")),
+        flat_button(row, T("set_open_config"), CARD2, HOVER2, lambda: open_path(HERE / "config.json"),
                     font=FONT_S, padx=10, pady=3).pack(side="right")
 
         def save():
@@ -779,6 +907,11 @@ class App:
                 log_error(traceback.format_exc())
             cfg.update(changes)
             self.detector = GameDetector.from_config(cfg)
+            if AUTOSTART_OK and autostart.get() != autostart_enabled():
+                try:
+                    set_autostart(autostart.get())
+                except Exception:
+                    log_error(traceback.format_exc())
             close()
             if need_restart and messagebox.askyesno(T("set_title"), T("set_restart"), parent=self.root):
                 self.restart = True
@@ -825,7 +958,7 @@ class App:
         w.attributes("-topmost", True)
         w.resizable(False, False)
         col = self._popup_head(w, mood)
-        tk.Label(col, text=text, font=("Segoe UI", 13), bg=BG, fg=FG, wraplength=330,
+        tk.Label(col, text=text, font=FONT_TEXT, bg=BG, fg=FG, wraplength=330,
                  justify="left").pack(anchor="w", padx=14)
         if extra:
             tk.Label(col, text=extra, font=FONT_S, bg=BG, fg=MUTED, wraplength=330,
@@ -849,7 +982,7 @@ class App:
         w.resizable(False, False)
         w.protocol("WM_DELETE_WINDOW", self.confirm_presence)
         col = self._popup_head(w, "study")
-        tk.Label(col, text=text, font=("Segoe UI", 14), bg=BG, fg=FG, wraplength=320,
+        tk.Label(col, text=text, font=(_F, 14), bg=BG, fg=FG, wraplength=320,
                  justify="left").pack(anchor="w", padx=14)
         tk.Label(col, text=T("presence_info", min=self.gate.cfg.get("presence_answer_within_min", 2)),
                  font=FONT_S, bg=BG, fg=MUTED, wraplength=320, justify="left").pack(anchor="w", padx=14, pady=(6, 0))
@@ -860,8 +993,11 @@ class App:
         """Odpočet před zavřením hry s nabídkou Dohrát zápas."""
         self._close_finish()
         try:
-            import winsound
-            winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+            if IS_WIN:
+                import winsound
+                winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+            else:
+                self.root.bell()
         except Exception:
             pass
         w = tk.Toplevel(self.root, bg=BG)
@@ -873,7 +1009,7 @@ class App:
         w.protocol("WM_DELETE_WINDOW", self._close_finish)
         text, _ = self.say("deadline", ev.text, min=ev.minutes)
         col = self._popup_head(w, "alert")
-        tk.Label(col, text=text, font=("Segoe UI", 13), bg=BG, fg=FG, wraplength=330,
+        tk.Label(col, text=text, font=FONT_TEXT, bg=BG, fg=FG, wraplength=330,
                  justify="left").pack(anchor="w", padx=14)
         info = T("finish_info", min=ev.minutes, per=self.gate.cfg.get("finish_match_per_day", 1))
         tk.Label(col, text=f"{ev.text}\n{info}", font=FONT_S, bg=BG, fg=MUTED, wraplength=330,
@@ -967,9 +1103,27 @@ class App:
 
     def refresh(self):
         g = self.gate
-        d = g.today()
         bal = g.balance_sec()
         ct = g.curfew_times()
+        if self.visible():  # schované okno nepřekresluje (šetří CPU), ikona u hodin se obnovuje dál
+            self._refresh_window(bal, ct)
+
+        if self.tray is not None:
+            m = int(max(0, bal) // 60)
+            text = str(m) if m < 100 else f"{m // 60}h"
+            if g.in_curfew():
+                color, text, tip = PURPLE, "Zz", T("tip_curfew", **ct)
+            elif g.mode == MODE_STUDY and not g.paused:
+                color, tip = TEAL_D, T("tip_study", t=fmt_min(bal))
+            elif bal > 0:
+                color, tip = GREEN, T("tip_play", t=fmt_min(bal))
+            else:
+                color, tip = RED, T("tip_zero")
+            self.tray.update(text, color, f"{T('app_title')} – {tip}")
+
+    def _refresh_window(self, bal: float, ct: dict):
+        g = self.gate
+        d = g.today()
         mode_text = mode_label(g.mode)
         if g.mode == MODE_STUDY and g.paused:
             mode_text += T("paused_suffix")
@@ -1008,24 +1162,14 @@ class App:
         if time.monotonic() - self._said_at > 60:
             self.sprite.set_mood(self.idle_mood())
 
-        if self.tray is not None:
-            m = int(max(0, bal) // 60)
-            text = str(m) if m < 100 else f"{m // 60}h"
-            if g.in_curfew():
-                color, text, tip = PURPLE, "Zz", T("tip_curfew", **ct)
-            elif g.mode == MODE_STUDY and not g.paused:
-                color, tip = TEAL_D, T("tip_study", t=fmt_min(bal))
-            elif bal > 0:
-                color, tip = GREEN, T("tip_play", t=fmt_min(bal))
-            else:
-                color, tip = RED, T("tip_zero")
-            self.tray.update(text, color, f"{T('app_title')} – {tip}")
-
     def autosave(self):
         try:
             self.gate.save()
         except Exception:
             log_error(traceback.format_exc())
+        self._saves += 1
+        if self._saves % 20 == 0 and not self.visible():  # každých 5 min, když je okno schované
+            trim_memory()
         self.root.after(15000, self.autosave)
 
     def _tk_error(self, *args):
@@ -1061,12 +1205,62 @@ def choose_language(root: tk.Tk) -> str | None:
     return chosen[0] if chosen else None
 
 
+def selftest() -> int:
+    """Postaví appku s dočasnými daty a bez hlídání her, projde okna a skončí. 0 = v pořádku."""
+    import tempfile
+    from pathlib import Path
+    cfg = load_config()
+    set_lang(cfg.get("language") or "en")
+    apply_theme(cfg.get("theme"))
+    errors: list[str] = []
+
+    class NoGames:
+        @staticmethod
+        def find_running():
+            return []
+
+    root = tk.Tk()
+    gate = Gate(cfg, Path(tempfile.mkdtemp()) / "data.json", Clock())
+    app = App(root, gate, NoGames(), scan_ms=200, persona=Persona(load_json(HERE / "personas.json", {})))
+    root.report_callback_exception = lambda *a: errors.append("".join(traceback.format_exception(*a)))
+
+    def run():
+        try:
+            for mood in MOODS:
+                app.sprites.get(mood)
+            if app.tray is not None:
+                app.tray.update("12", GREEN, "selftest")
+            gate.save()
+            assert gate.stats_path().exists(), "stats.xlsx"
+            app.open_settings()
+            app.settings_win.destroy()
+            app.settings_win = None
+            app.open_override()
+            app._close_override()
+            app.notice("selftest", "happy")
+            app.hide()
+            app.bring_to_front()
+        except Exception:
+            errors.append(traceback.format_exc())
+        root.after(800, root.destroy)
+
+    root.after(800, run)
+    root.mainloop()
+    if app.tray is not None:
+        app.tray.stop()
+    print("\n".join(errors) if errors else "selftest ok")
+    return 1 if errors else 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--test", action="store_true", help="zrychlený čas (1 min = 1 s), testovací data")
     ap.add_argument("--speed", type=float, default=None)
     ap.add_argument("--fake-time", default=None, help="HH:MM – předstíraný čas startu")
+    ap.add_argument("--selftest", action="store_true", help="otevře okna na zkoušku a skončí (CI, build)")
     args = ap.parse_args()
+    if args.selftest:
+        sys.exit(selftest())
 
     lock = single_instance(47614 if args.test else 47613)
     if lock is None:

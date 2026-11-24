@@ -22,6 +22,9 @@ except ImportError:  # appka bez psutil hry nehlídá, ale nespadne
 
 import sys
 
+IS_WIN = sys.platform == "win32"
+IS_MAC = sys.platform == "darwin"
+
 # U .exe (PyInstaller) leží config a data vedle exe, ne v dočasné složce.
 HERE = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
 
@@ -104,20 +107,39 @@ def save_config(changes: dict):
     save_json(path, cfg)
 
 
+def steam_install_paths() -> list[str]:
+    """Kde je nainstalovaný Steam: Windows z registru, macOS a Linux ze známých složek."""
+    if IS_WIN:
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as k:
+                return [os.path.normpath(winreg.QueryValueEx(k, "SteamPath")[0])]
+        except OSError:
+            return []
+    home = Path.home()
+    if IS_MAC:
+        cands = [home / "Library" / "Application Support" / "Steam"]
+    else:  # Linux: klasický, Flatpak a Snap Steam
+        cands = [home / ".local" / "share" / "Steam", home / ".steam" / "steam",
+                 home / ".var" / "app" / "com.valvesoftware.Steam" / ".local" / "share" / "Steam",
+                 home / "snap" / "steam" / "common" / ".local" / "share" / "Steam"]
+    out = []
+    for c in cands:
+        if c.is_dir():
+            real = os.path.realpath(c)
+            if real not in out:
+                out.append(real)
+    return out
+
+
 def steam_install_path() -> str | None:
-    """Kde je nainstalovaný Steam (z registru), ať to funguje na každém PC."""
-    try:
-        import winreg
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as k:
-            return os.path.normpath(winreg.QueryValueEx(k, "SteamPath")[0])
-    except OSError:
-        return None
+    paths = steam_install_paths()
+    return paths[0] if paths else None
 
 
 def steam_vdf_candidates(cfg_path: str) -> list[str]:
     out = [cfg_path] if cfg_path else []
-    sp = steam_install_path()
-    if sp:
+    for sp in steam_install_paths():
         out.append(os.path.join(sp, "steamapps", "libraryfolders.vdf"))
     return out
 
@@ -145,60 +167,98 @@ class GameDetector:
     whitelist_contains: list[str]
     whitelist_dirs: set[str] = field(default_factory=set)
 
+    _cache: dict = field(default_factory=dict, repr=False)  # (pid, jméno) -> je to hra?
+
     @classmethod
     def from_config(cls, cfg: dict) -> "GameDetector":
         roots = list(cfg.get("game_roots", []))
         if cfg.get("steam_auto", True):
             for vdf in steam_vdf_candidates(cfg.get("steam_libraryfolders", "")):
                 roots += steam_library_roots(vdf)
-            sp = steam_install_path()
-            if sp:
+            for sp in steam_install_paths():
                 roots.append(os.path.join(sp, "steamapps", "common"))
-        roots = list(dict.fromkeys(os.path.normcase(os.path.normpath(r)) + os.sep for r in roots))
+        roots = list(dict.fromkeys(norm_path(r) + "/" for r in roots if r))
         return cls(
             roots=roots,
             game_exe={e.lower() for e in cfg.get("game_exe", [])},
             java_keywords=[k.lower() for k in cfg.get("java_keywords", [])],
             whitelist_exe={e.lower() for e in cfg.get("whitelist_exe", [])},
             whitelist_contains=[k.lower() for k in cfg.get("whitelist_name_contains", [])],
-            whitelist_dirs={os.path.normcase(d) for d in cfg.get("whitelist_dirs", [])},
+            whitelist_dirs={d.lower() for d in cfg.get("whitelist_dirs", [])},
         )
+
+    @staticmethod
+    def _listed(names: set, lname: str, path: str) -> bool:
+        """Jméno procesu / .exe ze seznamu, nebo macOS aplikace (Hra.app) v cestě."""
+        if lname in names or (path and path.rsplit("/", 1)[-1] in names):
+            return True
+        return bool(path) and any(n.endswith(".app") and f"/{n}/" in path for n in names)
+
+    def _in_roots(self, path: str) -> bool | None:
+        for r in self.roots:
+            if path.startswith(r):
+                return path[len(r):].split("/", 1)[0] not in self.whitelist_dirs
+        return None
 
     def is_game(self, name: str, exe: str | None, cmdline_fn=None) -> bool:
         lname = (name or "").lower()
         if not lname:
             return False
-        if lname in self.whitelist_exe or any(k in lname for k in self.whitelist_contains):
+        path = norm_path(exe) if exe else ""
+        if self._listed(self.whitelist_exe, lname, path) or any(k in lname for k in self.whitelist_contains):
             return False
-        if lname in self.game_exe:
+        if self._listed(self.game_exe, lname, path):
             return True
-        if lname in ("javaw.exe", "java.exe") and cmdline_fn is not None:
+        if lname in ("javaw.exe", "java.exe", "java") and cmdline_fn is not None:
             try:
                 cmd = " ".join(cmdline_fn() or []).lower()
             except Exception:
                 return False
             return any(k in cmd for k in self.java_keywords)
-        if exe:
-            p = os.path.normcase(os.path.normpath(exe))
-            for r in self.roots:
-                if p.startswith(r):
-                    folder = p[len(r):].split(os.sep, 1)[0]
-                    return folder not in self.whitelist_dirs
+        if path:
+            verdict = self._in_roots(path)
+            if verdict is not None:
+                return verdict
+        # Linux: Windows hry přes Proton/Wine mají v exe cestu k Wine, hra je v příkazové řádce
+        if not IS_WIN and lname.endswith(".exe") and cmdline_fn is not None:
+            try:
+                arg0 = (cmdline_fn() or [""])[0]
+            except Exception:
+                return False
+            arg0 = norm_path(arg0)
+            if re.match(r"^[a-z]:/", arg0):
+                arg0 = arg0[2:]
+            return bool(self._in_roots(arg0))
         return False
 
     def find_running(self) -> list:
-        """Vrátí seznam (pid, name) běžících her."""
+        """Vrátí seznam (pid, name) běžících her. Cestu k exe zjišťuje jen u nových procesů."""
         if psutil is None:
             return []
-        found = []
-        for p in psutil.process_iter(["pid", "name", "exe"]):
+        found, seen = [], {}
+        for p in psutil.process_iter(["name"]):
             try:
-                info = p.info
-                if self.is_game(info.get("name"), info.get("exe"), p.cmdline):
-                    found.append((info["pid"], info["name"]))
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                name = p.info.get("name") or ""
+                key = (p.pid, name)
+                verdict = self._cache.get(key)
+                if verdict is None:
+                    try:
+                        exe = p.exe()
+                    except (psutil.AccessDenied, OSError):
+                        exe = None
+                    verdict = self.is_game(name, exe, p.cmdline)
+                seen[key] = verdict
+                if verdict:
+                    found.append(key)
+            except psutil.NoSuchProcess:
                 continue
+        self._cache = seen
         return found
+
+
+def norm_path(p: str) -> str:
+    """Cesta pro porovnání: lomítka "/", malá písmena (Windows i macOS ignorují velikost)."""
+    return os.path.normpath(p).replace("\\", "/").lower().rstrip("/")
 
 
 def close_windows(pid: int) -> bool:
@@ -238,7 +298,7 @@ def kill_processes(procs: list) -> list[str]:
                 ok = True
             except Exception:
                 ok = False
-        if not ok:
+        if not ok and IS_WIN:
             r = subprocess.run(
                 ["taskkill", "/F", "/T", "/PID", str(pid)],
                 capture_output=True,
@@ -280,6 +340,8 @@ class Gate:
         self._warned = set()
         self._curfew_warned_day = None
         self._last_tick = clock.now()
+        self._saved_text = ""
+        self._stats_rows: list | None = None
         self._seen_game_at: datetime | None = None   # kdy naposled běžela povolená hra
         self._prev_pids: set = set()                  # hry povolené v minulém ticku
         self.deadline_at: datetime | None = None      # odpočet "zavřu hru" (nabídka dohrání)
@@ -575,8 +637,14 @@ class Gate:
         return out
 
     def save(self):
+        """Zapíše data a statistiky, jen když se od minula něco změnilo (šetří disk)."""
         self.today()
-        save_json(self.data_path, self.data)
+        text = json.dumps(self.data, ensure_ascii=False, indent=2)
+        if text != self._saved_text:
+            tmp = self.data_path.with_suffix(self.data_path.suffix + ".tmp")
+            tmp.write_text(text, encoding="utf-8")
+            os.replace(tmp, self.data_path)
+            self._saved_text = text
         try:
             self.write_stats()
         except OSError:
@@ -613,11 +681,15 @@ class Gate:
         return rows
 
     def write_stats(self):
-        """stats.xlsx vedle dat (Excel ho otevře správně v každém jazyce Windows)."""
+        """stats.xlsx vedle dat (Excel ho otevře správně v každém jazyce Windows). Jen při změně."""
         path = self.stats_path()
+        rows = self.stats_rows()
+        if rows == self._stats_rows and path.exists():
+            return
         tmp = path.with_suffix(".tmp")
-        write_xlsx(tmp, self.stats_rows())
+        write_xlsx(tmp, rows)
         os.replace(tmp, path)  # když je soubor otevřený v Excelu, selže (OSError) a zapíše se příště
+        self._stats_rows = rows
 
     def totals(self) -> tuple[float, float]:
         """Učení a hraní za celou dobu (sekundy)."""
