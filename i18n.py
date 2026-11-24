@@ -1,0 +1,181 @@
+"""Texty appky v češtině a angličtině. T("klic", x=1) vrátí text v aktuálním jazyce."""
+from __future__ import annotations
+
+LANGS = {"cs": "Čeština", "en": "English"}
+_lang = "cs"
+
+STR: dict[str, dict[str, str]] = {
+    # ---------------------------------------------------------------- jádro
+    "app_title": {"cs": "Herní zámek", "en": "Game Lock"},
+    "mode_study": {"cs": "Učím se", "en": "Studying"},
+    "mode_play": {"cs": "Hraju", "en": "Playing"},
+    "mode_series": {"cs": "Koukám na seriál", "en": "Watching a show"},
+    "mode_other": {"cs": "Něco jiného", "en": "Something else"},
+    "mode_none": {"cs": "Zatím nevybráno", "en": "Not chosen yet"},
+    "deny_curfew": {"cs": "Je večerka ({start}–{end}). Hry jsou zamčený. Běž spát, ráno budeš rád.",
+                    "en": "It's curfew ({start}–{end}). Games are locked. Go to sleep, you'll thank yourself tomorrow."},
+    "deny_balance": {"cs": "Dneska máš na hraní 0 minut.\n\nNejdřív se uč – co se naučíš, to si pak zahraješ.",
+                     "en": "You have 0 minutes of play left today.\n\nStudy first – what you study, you get to play."},
+    "ov_curfew": {"cs": "Ve večerku výjimka neplatí.", "en": "Exceptions don't work during curfew."},
+    "ov_waiting": {"cs": "Na výjimku už čekáš.", "en": "You're already waiting for an exception."},
+    "ov_none_left": {"cs": "Dneska už jsi vyčerpal všechny výjimky.", "en": "You've used all your exceptions for today."},
+    "ov_short": {"cs": "Napiš pořádnej důvod (aspoň {need} znaků, máš {have}).",
+                 "en": "Write a real reason (at least {need} characters, you have {have})."},
+    "presence": {"cs": "Jsi tu? Pořád se učíš?", "en": "Are you there? Still studying?"},
+    "curfew_warn": {"cs": "Za {min} min je večerka. Dohraj a ulož se.",
+                    "en": "Curfew in {min} min. Finish up and save your game."},
+    "kill_curfew": {"cs": "Je večerka ({start}–{end}). Hry jsou zamčený až do rána.",
+                    "en": "It's curfew ({start}–{end}). Games are locked until morning."},
+    "kill_study": {"cs": "Jsi v režimu Učení. Nejdřív to dodělej, pak přepni na Hrát.",
+                   "en": "You're in Study mode. Finish it first, then switch to Play."},
+    "time_up": {"cs": "Čas na hraní vypršel. Dobrá práce, že jsi to dodržel.",
+                "en": "Play time is up. Good job sticking to it."},
+    "kill_balance": {"cs": "Došel ti čas na hraní. Dneska se ještě uč, pak si zahraješ.",
+                     "en": "You're out of play time. Study a bit more today, then play."},
+    "warn": {"cs": "Zbývá ti {min} min hraní.", "en": "{min} min of play left."},
+    "finish_over": {"cs": "Čas na dohrání vypršel.", "en": "Time to finish the match is up."},
+    "finish_done": {"cs": "Dohráno. Hry jsou zase zamčený.", "en": "Match finished. Games are locked again."},
+    "stats_head": {"cs": "Datum|Učení (min)|Hraní (min)|Vyděláno (min)|Výjimky (min)|Nevyužito (min)|Hraní / učení|Počet výjimek",
+                   "en": "Date|Study (min)|Play (min)|Earned (min)|Exceptions (min)|Unused (min)|Play / study|Exceptions"},
+    "stats_total": {"cs": "CELKEM", "en": "TOTAL"},
+    "stats_sheet": {"cs": "Statistiky", "en": "Stats"},
+
+    # ---------------------------------------------------------------- hlavní okno
+    "what_now": {"cs": "Co jdeš dělat?", "en": "What are you up to?"},
+    "btn_study": {"cs": "📚  Učit se", "en": "📚  Study"},
+    "btn_play": {"cs": "🎮  Hrát", "en": "🎮  Play"},
+    "btn_series": {"cs": "📺  Seriál", "en": "📺  Watch a show"},
+    "btn_other": {"cs": "✨  Něco jiného", "en": "✨  Something else"},
+    "now": {"cs": "Teď: {mode}", "en": "Now: {mode}"},
+    "paused_suffix": {"cs": " (stojí)", "en": " (paused)"},
+    "can_play": {"cs": "Můžeš hrát: {t}", "en": "You can play: {t}"},
+    "today_stats": {"cs": "Dnes naučeno: {s}\nDnes nahráno: {p}", "en": "Studied today: {s}\nPlayed today: {p}"},
+    "today_bonus": {"cs": "\nVýjimky: +{t}", "en": "\nExceptions: +{t}"},
+    "paused_bar": {"cs": "⏸  Učení stojí – nepotvrdil jsi, že jsi tu.",
+                   "en": "⏸  Study timer paused – you didn't confirm you're here."},
+    "btn_continue": {"cs": "Pokračuju", "en": "I'm here"},
+    "btn_override": {"cs": "Výjimka…", "en": "Exception…"},
+    "btn_override_wait": {"cs": "Výjimka čeká…", "en": "Exception pending…"},
+    "btn_override_none": {"cs": "Výjimky došly", "en": "No exceptions left"},
+    "btn_stats": {"cs": "📊 Statistiky", "en": "📊 Stats"},
+    "btn_settings": {"cs": "⚙ Nastavení", "en": "⚙ Settings"},
+    "curfew_now": {"cs": "🌙 Večerka – hry zamčený do {end}.", "en": "🌙 Curfew – games locked until {end}."},
+    "curfew_in": {"cs": "🌙 Večerka za {t} ({start})", "en": "🌙 Curfew in {t} ({start})"},
+    "hist": {"cs": "7 dní:   📚 {s7}   🎮 {p7}\nCelkem: 📚 {ts}   🎮 {tp}",
+             "en": "7 days:  📚 {s7}   🎮 {p7}\nTotal:   📚 {ts}   🎮 {tp}"},
+    "footer": {"cs": "Tohle je brzda, ne vězení. Jde to vypnout – ale proč bys to dělal?",
+               "en": "This is a brake, not a prison. You can turn it off – but why would you?"},
+    "no_psutil": {"cs": "Chybí psutil: python -m pip install psutil\nBez toho appka hry nehlídá.",
+                  "en": "psutil is missing: python -m pip install psutil\nWithout it the app can't watch games."},
+    "stats_fail": {"cs": "Statistiky se nepodařilo otevřít. Najdeš je ve složce appky jako stats.xlsx.",
+                   "en": "Couldn't open the stats. You'll find them in the app folder as stats.xlsx."},
+    "study_started": {"cs": "Časovač učení běží.", "en": "Study timer is running."},
+    "study_started_x": {"cs": "Hry jsou teď zamčený. Za {min} min se zeptám, jestli tu pořád jsi.",
+                        "en": "Games are locked now. In {min} min I'll check you're still here."},
+    "play_started": {"cs": "Můžeš hrát {min} min.", "en": "You can play for {min} min."},
+    "play_started_x": {"cs": "Upozorním tě 10 a 2 minuty před koncem.", "en": "I'll warn you 10 and 2 minutes before the end."},
+    "ok": {"cs": "OK", "en": "OK"},
+
+    # ---------------------------------------------------------------- tray
+    "tray_open": {"cs": "Otevřít", "en": "Open"},
+    "tray_study": {"cs": "📚 Učit se", "en": "📚 Study"},
+    "tray_play": {"cs": "🎮 Hrát", "en": "🎮 Play"},
+    "tray_stats": {"cs": "📊 Statistiky", "en": "📊 Stats"},
+    "tray_settings": {"cs": "⚙ Nastavení", "en": "⚙ Settings"},
+    "tray_autostart": {"cs": "Spouštět se Windows", "en": "Start with Windows"},
+    "tip_curfew": {"cs": "večerka, hry zamčený do {end}", "en": "curfew, games locked until {end}"},
+    "tip_study": {"cs": "učíš se, můžeš hrát {t}", "en": "studying, you can play {t}"},
+    "tip_play": {"cs": "můžeš hrát {t}", "en": "you can play {t}"},
+    "tip_zero": {"cs": "0 min, nejdřív se uč", "en": "0 min, study first"},
+
+    # ---------------------------------------------------------------- výjimka
+    "ov_title": {"cs": "Výjimka", "en": "Exception"},
+    "ov_why": {"cs": "Proč potřebuješ hrát teď?", "en": "Why do you need to play right now?"},
+    "ov_info": {"cs": "Pak počkáš {wait} min a potvrdíš. Dostaneš {bonus} min hraní. Výjimek dnes zbývá: {left}.\n"
+                      "Když okno během čekání zavřeš, výjimka se zruší.",
+                "en": "Then you wait {wait} min and confirm. You get {bonus} min of play. Exceptions left today: {left}.\n"
+                      "Closing this window while waiting cancels the exception."},
+    "ov_send": {"cs": "Odeslat a čekat", "en": "Send and wait"},
+    "ov_wait": {"cs": "Čekej…", "en": "Wait…"},
+    "ov_keep_open": {"cs": "Okno nezavírej, jinak se výjimka zruší. Mezitím si klidně dělej něco jiného.",
+                     "en": "Don't close this window or the exception is cancelled. Feel free to do something else meanwhile."},
+    "ov_confirm": {"cs": "Potvrdit výjimku", "en": "Confirm exception"},
+    "ov_granted": {"cs": "Výjimka platí: +{min} min.", "en": "Exception granted: +{min} min."},
+    "ov_granted_x": {"cs": "Máš {min} min hraní navíc.", "en": "You have {min} extra minutes of play."},
+
+    # ---------------------------------------------------------------- popupy
+    "presence_title": {"cs": "Jsi tu?", "en": "Still there?"},
+    "presence_info": {"cs": "Když neklikneš do {min} min, časovač učení se zastaví.",
+                      "en": "If you don't click within {min} min, the study timer pauses."},
+    "presence_btn": {"cs": "Jo, jsem tu", "en": "Yes, I'm here"},
+    "closed": {"cs": "Zavřeno: {names}", "en": "Closed: {names}"},
+    "not_closed": {"cs": "Nepodařilo se zavřít: {names}", "en": "Couldn't close: {names}"},
+    "debt": {"cs": "Na dluh: {min} min, odečtou se zítra.", "en": "Borrowed: {min} min, taken from tomorrow."},
+    "left_today": {"cs": "Dnes můžeš ještě hrát: {t}", "en": "Play time left today: {t}"},
+    "curfew_warn_x": {"cs": "Večerka je od {start} do {end}. Hry se pak zavřou.",
+                      "en": "Curfew is from {start} to {end}. Games will be closed then."},
+    "finish_title": {"cs": "Dohrát zápas?", "en": "Finish the match?"},
+    "finish_info": {"cs": "Jsi uprostřed zápasu? Dohraj ho, max {min} min, jen {per}× denně. "
+                          "Minuty navíc se odečtou zítra. Nová hra se mezitím zavře.",
+                    "en": "In the middle of a match? Finish it: max {min} min, only {per}× a day. "
+                          "Extra minutes are taken from tomorrow. Any new game gets closed meanwhile."},
+    "finish_btn": {"cs": "🎮  Dohrát zápas ({min} min)", "en": "🎮  Finish match ({min} min)"},
+    "finish_close": {"cs": "Zavřít hru teď", "en": "Close game now"},
+    "finish_count": {"cs": "Hru zavřu za {s} s", "en": "Closing the game in {s} s"},
+    "finish_ok": {"cs": "Dobře, dohraj zápas. Máš max {min} min, pak hru zavřu.",
+                  "en": "OK, finish your match. You have max {min} min, then I close the game."},
+    "finish_ok_x": {"cs": "Po zápase hru vypni sám. Novou hru teď nespouštěj.",
+                    "en": "Close the game yourself after the match. Don't start a new one."},
+
+    # ---------------------------------------------------------------- nastavení
+    "set_title": {"cs": "Nastavení", "en": "Settings"},
+    "set_lang": {"cs": "Jazyk", "en": "Language"},
+    "set_theme": {"cs": "Vzhled", "en": "Theme"},
+    "theme_system": {"cs": "Podle Windows", "en": "Follow Windows"},
+    "theme_dark": {"cs": "Tmavý", "en": "Dark"},
+    "theme_light": {"cs": "Světlý", "en": "Light"},
+    "set_games": {"cs": "Hry (tyhle appka hlídá)", "en": "Games (the app watches these)"},
+    "set_games_info": {"cs": "Přidej .exe hry, nebo celou složku s hrami. Hry ze Steamu se najdou samy.",
+                       "en": "Add a game's .exe or a whole folder with games. Steam games are found automatically."},
+    "set_steam": {"cs": "Automaticky hlídat všechny hry ze Steamu", "en": "Automatically watch all Steam games"},
+    "set_add_exe": {"cs": "+ Hra (.exe)", "en": "+ Game (.exe)"},
+    "set_add_dir": {"cs": "+ Složka s hrami", "en": "+ Games folder"},
+    "set_remove": {"cs": "Odebrat", "en": "Remove"},
+    "set_white": {"cs": "Není hra (nikdy nezavírat)", "en": "Not a game (never close)"},
+    "set_white_info": {"cs": "Programy, které appka nesmí zavřít, i když leží mezi hrami (např. ze Steamu).",
+                       "en": "Programs the app must never close, even if they sit among games (e.g. Steam tools)."},
+    "set_add_white": {"cs": "+ Program (.exe)", "en": "+ Program (.exe)"},
+    "set_save": {"cs": "Uložit", "en": "Save"},
+    "set_cancel": {"cs": "Zrušit", "en": "Cancel"},
+    "set_rules_hint": {"cs": "Pravidla (poměr učení/hraní, večerka, výjimky) jsou v config.json.",
+                       "en": "Rules (study/play ratio, curfew, exceptions) are in config.json."},
+    "set_open_config": {"cs": "Otevřít config.json", "en": "Open config.json"},
+    "set_restart": {"cs": "Jazyk a vzhled se projeví po restartu appky. Restartovat teď?",
+                    "en": "Language and theme apply after restarting the app. Restart now?"},
+    "item_exe": {"cs": "hra", "en": "game"},
+    "item_dir": {"cs": "složka", "en": "folder"},
+    "pick_exe": {"cs": "Vyber .exe hry", "en": "Pick the game's .exe"},
+    "pick_dir": {"cs": "Vyber složku s hrami", "en": "Pick a folder with games"},
+    "pick_white": {"cs": "Vyber program, který není hra", "en": "Pick a program that isn't a game"},
+    "first_title": {"cs": "Vítej", "en": "Welcome"},
+    "first_pick": {"cs": "Vyber jazyk / Choose language", "en": "Vyber jazyk / Choose language"},
+    "first_games": {"cs": "Hry ze Steamu appka najde sama. Jiné hry (Epic, Riot, Battle.net…) přidej v Nastavení → + Hra.",
+                    "en": "Steam games are found automatically. Add other games (Epic, Riot, Battle.net…) in Settings → + Game."},
+}
+
+
+def set_lang(lang: str | None):
+    global _lang
+    _lang = lang if lang in LANGS else "cs"
+
+
+def get_lang() -> str:
+    return _lang
+
+
+def T(key: str, **fmt) -> str:
+    entry = STR.get(key)
+    if entry is None:
+        return key
+    text = entry.get(_lang) or entry.get("cs") or key
+    return text.format(**fmt) if fmt else text

@@ -1,0 +1,235 @@
+{
+  "miku": {
+    "name": "Miku",
+    "emoji": "🎵",
+    "color": "#39C5BB",
+    "lines": {
+      "cs": {
+        "greet": [
+          "Ahoj! Co dneska děláme? Já bych dala učení a pak si to užijeme 🎵",
+          "Jsem tu! Vybereš, co jdeš dělat? Fandím ti~",
+          "Novej den, novej song. Začneme něčím užitečným?",
+          "Dobrý ráno! Nebo odpoledne? Hlavně že jsi tu 💙",
+          "Hej hej~ Dneska to dáme, ne? Nejdřív kousek učení, pak zábava!",
+          "Připravenej? Já jo! Rozcvička hlasu hotová, teď ty 🎤",
+          "Vítej zpátky~ Tak co si dneska naplánujeme?"
+        ],
+        "study_start": [
+          "Jdeme na to! Dám si sluchátka a budu ti tiše fandit 🎧",
+          "Super! Každá minuta učení = minuta hraní. Fér deal, ne?",
+          "Učení mód zapnutej~ Za chvíli se ozvu, jestli tu pořád jsi!",
+          "Prvních 30 minut je nejlepší deal dne! Rozjeď to~ 🎵",
+          "Jsem na tebe pyšná, že jsi začal. To je ta nejtěžší část 💙",
+          "Soustřeď se, já budu potichu. Skoro. 🤫",
+          "Nauč se to tak dobře, že by z toho šla napsat písnička~"
+        ],
+        "play_start": [
+          "Zasloužíš si to! Máš {min} min, užij si to 🎮",
+          "Hraj, ale nezapomeň na mě, ozvu se, až to bude končit~",
+          "{min} minut zábavy! Ať se daří, fandím ti 💙",
+          "Vydělal sis {min} min! Ukaž jim, jak se to hraje~",
+          "Hezky! {min} minut je tvých. GG předem 🎵",
+          "Jdi na to! Já si zatím zazpívám. {min} min, jo?"
+        ],
+        "deny_balance": [
+          "Hmm... dneska ses ještě neučil. Pojď nejdřív chvilku, já počkám! 🎵",
+          "Nemáš ještě naučený minutky~ Dáš aspoň 15 minut? Hned je máš na hraní!",
+          "Ještě ne! Nejdřív učení, pak hry. Věřím ti 💙",
+          "Psst... prvních 30 minut učení = 30 minut hraní. Dobrej obchod~",
+          "Hry počkají, neutečou. Pojď, uděláme to spolu!",
+          "Ne ne~ Nejdřív kousek práce. Pak ti budu fandit u hraní, slibuju 🎵"
+        ],
+        "deny_curfew": [
+          "Je pozdě... hry spí, a ty bys měl taky 🌙",
+          "Večerka! I já potřebuju spát, abych zítra zpívala. Ty taky~",
+          "Ne ne, teď už se jde do postele. Dobrou noc 💤",
+          "Zítřejší ty ti poděkuje, že jsi šel spát. Věř mi~",
+          "Shhh... noc je na spaní. Zazpívám ti ukolébavku 🎵",
+          "Hry jsou zamčený do rána. Zavři oči, já hlídám 💙"
+        ],
+        "kill_study": [
+          "Hej! Teď se přece učíme~ Hru jsem ti zavřela, vrať se k tomu 📚",
+          "Chytila jsem tě 😄 Nejdřív učení, pak hry. Dokončíme to spolu!",
+          "Učení mód! Hra počká, slibuju.",
+          "Ehm... tohle nevypadá jako učebnice 👀 Zpátky k tomu~",
+          "Ještě chvilku vydrž! Pak to přepni na Hrát a můžeš~",
+          "Nenech se rozptýlit! Jsi skoro tam 💙"
+        ],
+        "kill_balance": [
+          "Minutky došly~ Zavřela jsem to. Trochu se uč a zase si zahraješ!",
+          "Bez naučenejch minut to nejde, promiň 💙 Dáš chvilku učení?",
+          "Hra zavřená. Ale hej, stačí se chvíli učit a je to zpátky~",
+          "Nejdřív si to vydělej~ Pár minut učení a jsme zpátky ve hře 🎵",
+          "Promiň, musela jsem! Pravidla jsou pravidla 💙",
+          "Zavřeno~ Zkus 15 minut učení, uvidíš, jak rychle to uteče!"
+        ],
+        "kill_curfew": [
+          "Je večerka! Hru jsem zavřela. Běž spát, prosím 🌙",
+          "Pozdě v noci se nehraje~ Postel volá. Dobrou!",
+          "Zavřeno. Zítra budeš rád, že ses vyspal, věř mi 💤",
+          "Hej, je noc! Ani já už nezpívám. Spát~",
+          "Hra je pryč a ty jdeš do peřin. Dobrou noc 💙",
+          "Vyspalej hráč = lepší hráč. Zítra to dáš líp~ 🌙"
+        ],
+        "time_up": [
+          "Čas vypršel! Dodržel jsi to a já jsem na tebe pyšná 🎵",
+          "Konec! Dobrá hra~ Teď si dej pauzu, protáhni se a napij se.",
+          "A je to! Super, žes to dohrál v klidu. 39! (díky~)",
+          "Hotovo! Vstaň, protáhni záda, napij se vody~ 💧",
+          "Pěkně! Chceš víc? Víš, co dělat 📚😉",
+          "Konec kola! Byl jsi skvělej 💙"
+        ],
+        "warn": [
+          "Zbývá {min} min~ Pomalu dohrávej 🎵",
+          "Hej, ještě {min} minut! Ať tě to nepřekvapí~",
+          "{min} minut do konce! Najdi si dobrý místo na uložení 💙",
+          "Psst, {min} min! Žádný nový zápasy, jo?",
+          "Už jen {min} minut~ Dohraj to hezky 🎵"
+        ],
+        "curfew_warn": [
+          "Za {min} min je večerka~ Dohraj a pojď spát 🌙",
+          "Pozor, {min} minut do večerky! Ulož si to včas~",
+          "Už je skoro čas spát. Ještě {min} min a končíme 💤",
+          "Za {min} minut zhasínáme! Nezačínej nic dlouhýho~",
+          "Večerka za {min} min. Připrav se na postýlku 🎵"
+        ],
+        "presence": [
+          "Jsi tu? Pořád se učíš? 🎵",
+          "Kontrola~ Jsi u toho?",
+          "Hej, jsi tu ještě? Klikni, ať vím, že jsi neusnul~",
+          "Ťuk ťuk~ Ještě se učíš? 📚",
+          "Jen kontroluju! Jde to dobře? 💙"
+        ],
+        "override_ready": [
+          "Výjimka platí! Máš {min} min navíc. Užij si to s kámošema 🎮",
+          "OK, {min} minut je tvých~ Ale zítra učení, jo?",
+          "Výjimka schválena! {min} min. Hraj fér 💙",
+          "Tak jo, {min} min navíc! Jen ať se to nestane zvykem~ 🎵"
+        ],
+        "deadline": [
+          "Hej! Čas končí~ Jsi uprostřed zápasu? 🎵",
+          "Stop stop! Dohráváš ještě zápas? Klikni, ať tě nevyhodím~",
+          "Konec času! Jestli máš rozehráno, můžeš to dohrát 💙"
+        ],
+        "finish_done": [
+          "Dohráno! Dobrá práce, žes to vypnul sám 🎵",
+          "Zápas hotovej~ Teď pauza, jo? 💙",
+          "Super, dohrál jsi a vypnul. Jsem na tebe pyšná~"
+        ]
+      },
+      "en": {
+        "greet": [
+          "Hi! What are we doing today? I vote study first, then fun 🎵",
+          "I'm here! Pick what you're up to – I'm cheering for you~",
+          "New day, new song. Shall we start with something useful?",
+          "Good morning! Or afternoon? Either way, glad you're here 💙",
+          "Hey hey~ We've got this today, right? A bit of study, then fun!",
+          "Ready? I am! Vocal warm-up done, your turn 🎤",
+          "Welcome back~ So what's the plan for today?"
+        ],
+        "study_start": [
+          "Let's go! I'll put my headphones on and quietly cheer for you 🎧",
+          "Nice! Every minute of study turns into play time. Fair deal, right?",
+          "Study mode on~ I'll check in on you in a bit!",
+          "The first 30 minutes are the best deal of the day! Go~ 🎵",
+          "I'm proud you started. That's the hardest part 💙",
+          "Focus, I'll be quiet. Mostly. 🤫",
+          "Learn it so well you could write a song about it~"
+        ],
+        "play_start": [
+          "You earned it! {min} min, enjoy 🎮",
+          "Play, but don't forget me – I'll tell you when time's almost up~",
+          "{min} minutes of fun! Good luck, I'm rooting for you 💙",
+          "You earned {min} min! Show them how it's done~",
+          "Nice! {min} minutes are yours. GG in advance 🎵",
+          "Go for it! I'll sing in the meantime. {min} min, OK?"
+        ],
+        "deny_balance": [
+          "Hmm... you haven't studied yet today. Just a little first, I'll wait! 🎵",
+          "No minutes earned yet~ How about 15 minutes? Then they're all yours!",
+          "Not yet! Study first, then games. I believe in you 💙",
+          "Psst... the first 30 minutes of study = 30 minutes of play. Good deal~",
+          "Games will wait, they won't run away. Let's do it together!",
+          "Nope~ A bit of work first. Then I'll cheer for you while you play, promise 🎵"
+        ],
+        "deny_curfew": [
+          "It's late... the games are asleep, and you should be too 🌙",
+          "Curfew! Even I need sleep to sing tomorrow. You too~",
+          "Nope, it's bedtime now. Good night 💤",
+          "Tomorrow-you will thank you for sleeping. Trust me~",
+          "Shhh... night is for sleeping. I'll sing you a lullaby 🎵",
+          "Games are locked until morning. Close your eyes, I'll keep watch 💙"
+        ],
+        "kill_study": [
+          "Hey! We're studying right now~ I closed the game, back to it 📚",
+          "Caught you 😄 Study first, then games. We'll finish it together!",
+          "Study mode! The game can wait, promise.",
+          "Umm... that doesn't look like a textbook 👀 Back to it~",
+          "Hang in there! Then switch to Play and you're free~",
+          "Don't get distracted! You're almost there 💙"
+        ],
+        "kill_balance": [
+          "Out of minutes~ I closed it. Study a little and you can play again!",
+          "Can't play without earned minutes, sorry 💙 A bit of study?",
+          "Game closed. But hey, a little studying and it's back~",
+          "Earn it first~ A few minutes of study and we're back in the game 🎵",
+          "Sorry, I had to! Rules are rules 💙",
+          "Closed~ Try 15 minutes of study, you'll see how fast it goes!"
+        ],
+        "kill_curfew": [
+          "It's curfew! I closed the game. Go to sleep, please 🌙",
+          "No gaming late at night~ Your bed is calling. Night!",
+          "Closed. You'll be glad you slept tomorrow, trust me 💤",
+          "Hey, it's night! Even I stopped singing. Sleep~",
+          "The game's gone and you're off to bed. Good night 💙",
+          "A rested player is a better player. You'll do better tomorrow~ 🌙"
+        ],
+        "time_up": [
+          "Time's up! You kept to it and I'm proud of you 🎵",
+          "That's it! Good game~ Now take a break, stretch and drink some water.",
+          "Done! Great job wrapping up calmly. 39! (thank you~)",
+          "Finished! Stand up, stretch your back, grab some water~ 💧",
+          "Nice! Want more? You know what to do 📚😉",
+          "End of round! You were great 💙"
+        ],
+        "warn": [
+          "{min} min left~ Start wrapping up 🎵",
+          "Hey, {min} more minutes! Don't let it surprise you~",
+          "{min} minutes to go! Find a good spot to save 💙",
+          "Psst, {min} min! No new matches, OK?",
+          "Only {min} minutes left~ Finish nicely 🎵"
+        ],
+        "curfew_warn": [
+          "Curfew in {min} min~ Finish up and go to bed 🌙",
+          "Heads up, {min} minutes to curfew! Save in time~",
+          "It's almost bedtime. {min} more min and we're done 💤",
+          "Lights out in {min} minutes! Don't start anything long~",
+          "Curfew in {min} min. Get ready for bed 🎵"
+        ],
+        "presence": [
+          "Are you there? Still studying? 🎵",
+          "Check-in~ Still at it?",
+          "Hey, still here? Click so I know you didn't fall asleep~",
+          "Knock knock~ Still studying? 📚",
+          "Just checking! Going well? 💙"
+        ],
+        "override_ready": [
+          "Exception granted! {min} extra min. Have fun with your friends 🎮",
+          "OK, {min} minutes are yours~ But study tomorrow, yeah?",
+          "Exception approved! {min} min. Play fair 💙",
+          "Alright, {min} extra min! Just don't make it a habit~ 🎵"
+        ],
+        "deadline": [
+          "Hey! Time's up~ Are you in the middle of a match? 🎵",
+          "Stop stop! Still finishing a match? Click so I don't kick you out~",
+          "Time's up! If you're mid-match, you can finish it 💙"
+        ],
+        "finish_done": [
+          "Match done! Great job closing it yourself 🎵",
+          "Match over~ Break time now, OK? 💙",
+          "Nice, you finished and closed it. I'm proud of you~"
+        ]
+      }
+    }
+  }
+}

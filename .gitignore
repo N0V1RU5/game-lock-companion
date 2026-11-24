@@ -1,0 +1,17 @@
+# your personal settings and data (created by the app)
+config.json
+data*.json
+stats*.xlsx
+errors.log
+*.tmp
+
+# build output
+dist/
+build/
+*.spec
+__pycache__/
+
+# local only
+kamos/
+tools/kresleni/
+obrazky/_zaloha/

@@ -1,0 +1,47 @@
+{
+  "_help": "Defaults. Your changes go to config.json (created on first start). play_per_study = minutes of play for 1 minute of study.",
+  "language": null,
+  "theme": "system",
+  "play_per_study": 0.5,
+  "_help_kickstart": "The first kickstart_min minutes of study PER DAY are multiplied by kickstart_multiplier.",
+  "kickstart_min": 30,
+  "kickstart_multiplier": 1.0,
+  "curfew_start": "23:00",
+  "curfew_end": "06:00",
+  "curfew_warning_min": 15,
+  "presence_check_every_min": 20,
+  "presence_answer_within_min": 2,
+  "override_wait_min": 10,
+  "override_bonus_min": 30,
+  "override_min_reason_chars": 20,
+  "override_max_per_day": 1,
+  "warn_before_end_min": [
+    10,
+    2
+  ],
+  "_help_finish": "When a game must close (curfew / time up), a 'Finish match' offer shows for finish_prompt_sec seconds: max finish_match_min minutes, finish_match_per_day times a day. Borrowed minutes are taken from tomorrow.",
+  "finish_match_min": 20,
+  "finish_match_per_day": 1,
+  "finish_prompt_sec": 90,
+  "_help_games": "Games: steam_auto = every game in Steam libraries. Add others in Settings (or here): game_exe = exe names, game_roots = folders, java_keywords = words in a Java command line (e.g. minecraft).",
+  "steam_auto": true,
+  "steam_libraryfolders": "C:\\Program Files (x86)\\Steam\\steamapps\\libraryfolders.vdf",
+  "game_roots": [],
+  "game_exe": [],
+  "java_keywords": [],
+  "_help_whitelist": "Never closed: whitelist_exe = exe names, whitelist_name_contains = text in the exe name, whitelist_dirs = folder names inside steamapps\\common that are tools, not games.",
+  "whitelist_exe": [],
+  "whitelist_name_contains": [
+    "server"
+  ],
+  "whitelist_dirs": [
+    "Steamworks Shared",
+    "Steam Controller Configs",
+    "SteamVR",
+    "wallpaper_engine",
+    "Aseprite",
+    "Blender",
+    "Godot Engine",
+    "OBS Studio"
+  ]
+}
