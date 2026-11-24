@@ -21,9 +21,10 @@ FILES = ["config.default.json", "personas.json", "icon.ico", "LICENSE", "NOTICE.
 PLATFORM = {"win32": "windows", "darwin": "macos"}.get(sys.platform, "linux")
 
 # Modules the app never uses. Leaving them out saves ~20 MB (OpenSSL alone is ~7 MB).
+# Keep urllib: pathlib imports it on Python 3.12. CI self-tests every built app before upload.
 EXCLUDE = ["_ssl", "ssl", "_hashlib", "_decimal", "decimal", "_lzma", "lzma", "_bz2", "bz2",
            "_zstd", "compression.zstd", "pyexpat", "xml", "_elementtree", "unicodedata",
-           "unittest", "pydoc", "doctest", "email", "http", "urllib", "html", "sqlite3",
+           "unittest", "pydoc", "doctest", "email", "http", "html", "sqlite3",
            "asyncio", "multiprocessing", "concurrent", "_ctypes_test", "lib2to3", "tkinter.test"]
 # Windows and macOS don't need Pillow or pystray at all (own tray icon / no tray, GIFs via Tk).
 EXCLUDE += ["PIL", "pystray"] if PLATFORM != "linux" else [

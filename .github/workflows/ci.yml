@@ -64,6 +64,23 @@ jobs:
         run: python -m pip install pillow
       - name: Build
         run: python tools/build_exe.py
+      - name: Self-test the built app (Windows)
+        if: runner.os == 'Windows'
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          $p = Start-Process dist/GameLockCompanion/GameLockCompanion.exe -ArgumentList "--selftest" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { exit 1 }
+      - name: Self-test the built app (macOS)
+        if: runner.os == 'macOS'
+        timeout-minutes: 3
+        run: ./dist/GameLockCompanion/GameLockCompanion --selftest
+      - name: Self-test the built app (Linux)
+        if: runner.os == 'Linux'
+        timeout-minutes: 3
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+          xvfb-run -a ./dist/GameLockCompanion/GameLockCompanion --selftest
       - name: Upload to the release
         uses: softprops/action-gh-release@v2
         with:
