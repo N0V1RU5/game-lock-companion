@@ -41,7 +41,7 @@ def one(lang, theme, what):
 
     i18n.set_lang(lang)
     hz.apply_theme(theme)
-    hz.pystray = None  # bez ikony u hodin
+    hz.TRAY_OK = False  # bez ikony u hodin
     root = hz.tk.Tk()
     name = f"{what}_{lang}_{theme}.png"
     if what == "first":

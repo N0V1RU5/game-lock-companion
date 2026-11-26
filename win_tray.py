@@ -19,6 +19,9 @@ WNDPROC = ctypes.WINFUNCTYPE(LRESULT, wintypes.HWND, wintypes.UINT, wintypes.WPA
 WM_DESTROY, WM_CLOSE, WM_NULL, WM_COMMAND = 0x0002, 0x0010, 0x0000, 0x0111
 WM_LBUTTONUP, WM_RBUTTONUP = 0x0202, 0x0205
 WM_TRAY = 0x8000 + 1  # WM_APP + 1
+WM_HOTKEY_ON, WM_HOTKEY_OFF, WM_HOTKEY = 0x8000 + 2, 0x8000 + 3, 0x0312
+MOD_CONTROL, MOD_SHIFT, MOD_NOREPEAT = 0x2, 0x4, 0x4000
+HOTKEY_ID = 1
 NIM_ADD, NIM_MODIFY, NIM_DELETE = 0, 1, 2
 NIF_MESSAGE, NIF_ICON, NIF_TIP = 1, 2, 4
 MF_STRING, MF_SEPARATOR, MF_CHECKED = 0x0, 0x800, 0x8
@@ -100,6 +103,8 @@ _sig(gdi32.SetBkMode, ctypes.c_int, wintypes.HDC, ctypes.c_int)
 _sig(gdi32.SetTextColor, wintypes.COLORREF, wintypes.HDC, wintypes.COLORREF)
 _sig(shell32.Shell_NotifyIconW, wintypes.BOOL, wintypes.DWORD, P)
 _sig(kernel32.GetModuleHandleW, wintypes.HMODULE, wintypes.LPCWSTR)
+_sig(user32.RegisterHotKey, wintypes.BOOL, wintypes.HWND, ctypes.c_int, wintypes.UINT, wintypes.UINT)
+_sig(user32.UnregisterHotKey, wintypes.BOOL, wintypes.HWND, ctypes.c_int)
 
 
 def make_icon(text: str, color: str, out: list | None = None) -> int:
@@ -147,8 +152,9 @@ def make_icon(text: str, color: str, out: list | None = None) -> int:
 class WinTray:
     """Ikona u hodin. items = [(text, akce) | None (oddělovač) | (text, akce, zaškrtnuto_fn)]; první = výchozí."""
 
-    def __init__(self, title: str, items: list, text: str, color: str):
+    def __init__(self, title: str, items: list, text: str, color: str, on_hotkey=None):
         self.items = items
+        self.on_hotkey = on_hotkey
         self.visible = False
         self.hwnd = None
         self.hicon = make_icon(text, color)
@@ -190,6 +196,16 @@ class WinTray:
                 elif lparam == WM_RBUTTONUP:
                     self._menu()
                 return 0
+            if msg == WM_HOTKEY_ON:  # zkratka se registruje ve vlákně, které vlastní okno
+                user32.RegisterHotKey(hwnd, HOTKEY_ID, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, wparam)
+                return 0
+            if msg == WM_HOTKEY_OFF:
+                user32.UnregisterHotKey(hwnd, HOTKEY_ID)
+                return 0
+            if msg == WM_HOTKEY:
+                if self.on_hotkey:
+                    self.on_hotkey()
+                return 0
             if msg == self._taskbar_created:  # Průzkumník se restartoval -> ikonu přidat znovu
                 self._add()
                 return 0
@@ -229,6 +245,11 @@ class WinTray:
         if self.hwnd:
             shell32.Shell_NotifyIconW(NIM_MODIFY, ctypes.byref(self._nid(NIF_ICON | NIF_TIP)))
         user32.DestroyIcon(old)
+
+    def hotkey(self, on: bool, key: str = "D"):
+        """Globální zkratka Ctrl+Shift+<key> jen na dobu, kdy je potřeba (jinak by blokovala jiné appky)."""
+        if self.hwnd:
+            user32.PostMessageW(self.hwnd, WM_HOTKEY_ON if on else WM_HOTKEY_OFF, ord(key.upper()), 0)
 
     def stop(self):
         if self.hwnd:

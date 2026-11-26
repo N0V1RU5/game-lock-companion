@@ -19,11 +19,14 @@ always kill it in Task Manager. But it adds just enough friction to make you stu
 - **Earn play time by studying.** By default the first 30 min of study each day = 1:1, then 2 min of study = 1 min of play.
 - **Games are closed** when you have no time left, while you're in Study mode, and during **curfew** (23:00–6:00).
 - **"Are you there?"** check every 20 min while studying, so the timer can't run while you're AFK.
-- **Finish the match.** When time runs out mid-game, you get 90 s to click *Finish match* (max 20 min, once a day). Borrowed minutes are taken from tomorrow.
+- **Never interrupts your game.** While a game runs, notices are a small bar in a corner that hides by itself and never takes the mouse or keyboard from the game (Windows: the bar can't even be activated by a click).
+- **Finish the match.** When time runs out mid-game, you get 90 s to press **Ctrl+Shift+D** in the game (Windows) or click *Finish* in the corner bar: max 20 min, once a day. Borrowed minutes are taken from tomorrow.
+- **"Don't start a new match"** reminder 30 min before curfew, then the 15-minute curfew warning.
 - **Exception** with a written reason and a 10-minute wait (once a day).
 - **Steam games are detected automatically.** Add any other game by picking its `.exe` or a folder.
 - **Czech / English**, **dark / light** theme (or follow the system).
 - Tray icon with minutes left, warnings 10 and 2 min before the end, daily stats in Excel (`stats.xlsx`).
+- **One-click updates.** The app checks GitHub once a day and updates itself; your settings, data, stats and images stay.
 - **Lightweight:** ~22 MB of RAM, a 9 MB download on Windows (12 MB macOS, 29 MB Linux), checks for games every 2 s with almost no CPU. Data is only written to disk when something changes.
 
 <p>
@@ -42,6 +45,15 @@ always kill it in Task Manager. But it adds just enough friction to make you stu
 5. Open **⚙ Settings** and add your non-Steam games (**+ Game (.exe)** or **+ Games folder**).
 
 <img src="docs/screenshots/first_en_dark.png" width="300" alt="Language choice on first start">
+
+### Updating
+
+From 1.2.0 on, the app tells you when a new version is out (once a day, can be turned off in Settings) and
+**Update** does the rest: it downloads the new version, closes for a moment and starts again. Your
+`config.json`, `data.json`, stats and the `obrazky/` folder are kept. No uninstalling needed.
+
+Coming from 1.0 or 1.1: close the app (Task Manager), unzip the new version **over the old folder** and run it.
+Your settings and data stay, because the zip doesn't contain them.
 
 ### macOS and Linux
 
@@ -99,6 +111,9 @@ Language, theme and games are in **⚙ Settings**. The rules are in `config.json
 | `kickstart_min` / `kickstart_multiplier` | `30` / `1.0` | first N min of study per day use this ratio |
 | `curfew_start` / `curfew_end` | `"23:00"` / `"06:00"` | curfew; games are always closed |
 | `curfew_warning_min` | `15` | warning before curfew |
+| `match_warning_min` | `30` | "don't start a new match" reminder (0 = off) |
+| `toast_corner` | `"top-right"` | where in-game notices appear (`top-left`, `bottom-right`), also in Settings |
+| `check_updates` | `true` | look for a new version on GitHub once a day |
 | `presence_check_every_min` / `presence_answer_within_min` | `20` / `2` | "Are you there?" |
 | `override_wait_min` / `override_bonus_min` / `override_max_per_day` | `10` / `30` / `1` | exception |
 | `finish_match_min` / `finish_match_per_day` / `finish_prompt_sec` | `20` / `1` / `90` | finish the match |

@@ -19,11 +19,14 @@ vypneš vždycky. Ale přidá přesně tolik tření, abys šel nejdřív dělat
 - **Čas na hraní za učení.** Výchozí: prvních 30 min učení za den 1:1, potom 2 min učení = 1 min hraní.
 - **Zavře hru**, když ti došel čas, když jsi v režimu Učení a ve **večerku** (23:00–6:00).
 - **„Jsi tu?“** každých 20 min při učení, aby časovač neběžel, když jsi pryč.
-- **Dohrání zápasu.** Když čas dojde uprostřed hry, máš 90 s na kliknutí *Dohrát zápas* (max 20 min, 1× denně). Minuty navíc se odečtou zítra.
+- **Neruší tě ve hře.** Když běží hra, upozornění je jen malá lišta v rohu, sama zmizí a nikdy hře nevezme myš ani klávesnici (na Windows ji ani kliknutí neaktivuje).
+- **Dohrání zápasu.** Když čas dojde uprostřed hry, máš 90 s: ve hře zmáčkni **Ctrl+Shift+D** (Windows) nebo klikni *Dohrát* v liště v rohu. Max 20 min, 1× denně, minuty navíc se odečtou zítra.
+- **„Nový zápas už nezačínej“** 30 min před večerkou, potom varování 15 min před večerkou.
 - **Výjimka** s napsaným důvodem a 10min čekáním (1× denně).
 - **Hry ze Steamu najde sama.** Jakoukoliv jinou hru přidáš výběrem `.exe` nebo složky.
 - **Čeština / angličtina**, **tmavý / světlý** vzhled (nebo podle systému).
 - Ikona u hodin se zbývajícími minutami, varování 10 a 2 min před koncem, statistiky po dnech v Excelu (`stats.xlsx`).
+- **Aktualizace jedním kliknutím.** Appka se 1× denně podívá na GitHub a umí se sama aktualizovat; nastavení, data, statistiky i obrázky zůstanou.
 - **Nenáročná:** ~22 MB RAM, 9 MB ke stažení na Windows (12 MB macOS, 29 MB Linux), hry kontroluje každé 2 s skoro bez zátěže procesoru. Na disk zapisuje, jen když se něco změní.
 
 <p>
@@ -40,6 +43,15 @@ vypneš vždycky. Ale přidá přesně tolik tření, abys šel nejdřív dělat
 3. Spusť **`GameLockCompanion.exe`**. Windows SmartScreen může varovat, protože appka není podepsaná: *Další informace → Přesto spustit*. Některé antiviry nemají rády appky, co zavírají jiné procesy; je to falešný poplach.
 4. Vyber jazyk. Appka se sama přidá do spouštění s Windows (vypneš v menu ikony u hodin).
 5. Otevři **⚙ Nastavení** a přidej hry mimo Steam (**+ Hra (.exe)** nebo **+ Složka s hrami**).
+
+### Aktualizace
+
+Od verze 1.2.0 ti appka sama řekne, že je venku nová verze (1× denně, jde vypnout v Nastavení), a tlačítko
+**Aktualizovat** udělá zbytek: stáhne novou verzi, na chvilku se zavře a znovu spustí. `config.json`,
+`data.json`, statistiky i složka `obrazky/` zůstanou. Nic se neodinstalovává.
+
+Z verze 1.0 nebo 1.1: zavři appku (Správce úloh), rozbal novou verzi **přes starou složku** a spusť ji.
+Nastavení i data zůstanou, protože v zipu nejsou.
 
 ### macOS a Linux
 
@@ -96,6 +108,9 @@ Jazyk, vzhled a hry jsou v **⚙ Nastavení**. Pravidla jsou v `config.json`
 | `kickstart_min` / `kickstart_multiplier` | `30` / `1.0` | prvních N min učení za den má tenhle poměr |
 | `curfew_start` / `curfew_end` | `"23:00"` / `"06:00"` | večerka, hry se zavřou vždycky |
 | `curfew_warning_min` | `15` | varování před večerkou |
+| `match_warning_min` | `30` | „nový zápas už nezačínej“ (0 = vypnuto) |
+| `toast_corner` | `"top-right"` | kde se ukazují upozornění během hry (`top-left`, `bottom-right`), i v Nastavení |
+| `check_updates` | `true` | 1× denně hledat novou verzi na GitHubu |
 | `presence_check_every_min` / `presence_answer_within_min` | `20` / `2` | „Jsi tu?“ |
 | `override_wait_min` / `override_bonus_min` / `override_max_per_day` | `10` / `30` / `1` | výjimka |
 | `finish_match_min` / `finish_match_per_day` / `finish_prompt_sec` | `20` / `1` / `90` | dohrání zápasu |

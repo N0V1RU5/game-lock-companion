@@ -115,6 +115,11 @@
           "Dohráno! Dobrá práce, žes to vypnul sám 🎵",
           "Zápas hotovej~ Teď pauza, jo? 💙",
           "Super, dohrál jsi a vypnul. Jsem na tebe pyšná~"
+        ],
+        "match_warn": [
+          "Za {min} min večerka~ Nový zápas už ne, jo? 🌙",
+          "Psst, {min} minut do večerky. Tenhle dohraj a další nezačínej 💙",
+          "Večerka se blíží ({min} min). Žádný nový rankedy~ 🎵"
         ]
       },
       "en": {
@@ -228,6 +233,11 @@
           "Match done! Great job closing it yourself 🎵",
           "Match over~ Break time now, OK? 💙",
           "Nice, you finished and closed it. I'm proud of you~"
+        ],
+        "match_warn": [
+          "Curfew in {min} min~ No new matches, OK? 🌙",
+          "Psst, {min} minutes to curfew. Finish this one, don't start another 💙",
+          "Curfew is coming ({min} min). No new ranked games~ 🎵"
         ]
       }
     }

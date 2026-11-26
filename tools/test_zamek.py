@@ -280,6 +280,13 @@ g.today()["study_sec"] += 120
 g.save()
 check(g.data_path.stat().st_mtime_ns != t0, "po změně se data zapíšou")
 
+# --- aktualizace: porovnání verzí
+import updater
+check(updater.is_newer("v1.2.0", "1.1.0") and updater.is_newer("v1.10.0", "1.9.3"), "novější verze se pozná")
+check(not updater.is_newer("v1.1.0", "1.2.0") and not updater.is_newer("v1.2.0", "1.2.0"), "stejná/starší verze není aktualizace")
+check(updater.ASSET.startswith("GameLockCompanion-") and "config.json" in updater.KEEP and "obrazky" in updater.KEEP,
+      "aktualizace nepřepíše nastavení, data ani obrázky")
+
 # --- skutečné zavření procesu (falešná hra = náš Python s sleep, zabíjí se jen jeho PID)
 import psutil
 p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])

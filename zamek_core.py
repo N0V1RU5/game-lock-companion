@@ -22,6 +22,8 @@ except ImportError:  # appka bez psutil hry nehlídá, ale nespadne
 
 import sys
 
+VERSION = "1.2.0"  # musí odpovídat tagu releasu (v1.2.0), podle něj se hledají aktualizace
+
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"
 
@@ -339,6 +341,7 @@ class Gate:
         self.override_reason = ""
         self._warned = set()
         self._curfew_warned_day = None
+        self._match_warned_day = None
         self._last_tick = clock.now()
         self._saved_text = ""
         self._stats_rows: list | None = None
@@ -469,6 +472,11 @@ class Gate:
             return None
         return max(0.0, (self.override_ready_at - self.clock.now()).total_seconds())
 
+    @property
+    def game_running(self) -> bool:
+        """Běží teď povolená hra (nebo dohrávka)? Pak appka nesmí brát hře focus."""
+        return bool(self._prev_pids)
+
     # ---- dohrání zápasu
     def finishes_left(self) -> int:
         return int(self.cfg.get("finish_match_per_day", 1)) - int(self.today().get("finishes", 0))
@@ -561,6 +569,14 @@ class Gate:
         # výjimka: ve večerku se čekání ruší
         if self.override_ready_at is not None and self.in_curfew():
             self.cancel_override()
+
+        # "nový zápas už nezačínej" – dřív než varování před večerkou, ať se dlouhý zápas vejde
+        match_min = float(self.cfg.get("match_warning_min", 30))
+        if (match_min > 0 and not self.in_curfew() and self.minutes_to_curfew() <= match_min
+                and self._match_warned_day != self.day_key()):
+            self._match_warned_day = self.day_key()
+            m = int(round(self.minutes_to_curfew()))
+            events.append(Event("match_warn", T("match_warn", min=m), key="match_warn", minutes=m))
 
         # varování před večerkou
         warn_min = float(self.cfg.get("curfew_warning_min", 15))

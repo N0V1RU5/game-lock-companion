@@ -15,13 +15,14 @@ import subprocess
 import sys
 import time
 import traceback
+import threading
 import tkinter as tk
 from datetime import datetime
 from tkinter import filedialog, messagebox
 
 from i18n import LANGS, T, get_lang, set_lang
 from zamek_core import (
-    HERE, IS_MAC, IS_WIN, MODE_OTHER, MODE_PLAY, MODE_SERIES, MODE_STUDY,
+    HERE, IS_MAC, IS_WIN, MODE_OTHER, MODE_PLAY, MODE_SERIES, MODE_STUDY, VERSION,
     Clock, GameDetector, Gate, fmt_min, kill_processes, load_config, mode_label, psutil, save_config, load_json,
 )
 
@@ -369,7 +370,7 @@ class Tray:
 
         if IS_WIN:  # vlastní ikona přes Win32 API: bez pystray a Pillow (méně RAM i místa)
             from win_tray import WinTray
-            self.icon = WinTray(T("app_title"), entries, "0", RED)
+            self.icon = WinTray(T("app_title"), entries, "0", RED, on_hotkey=lambda: self.q.put("finish"))
             return
         import pystray  # Linux
         items = []
@@ -401,6 +402,14 @@ class Tray:
             self._last_push = time.monotonic()
         except Exception:
             log_error(traceback.format_exc())
+
+    def hotkey(self, on: bool):
+        """Ctrl+Shift+D během odpočtu (jen Windows)."""
+        if IS_WIN:
+            try:
+                self.icon.hotkey(on)
+            except Exception:
+                log_error(traceback.format_exc())
 
     def stop(self):
         try:
@@ -465,6 +474,10 @@ class App:
         self.presence_win: tk.Toplevel | None = None
         self.override_win: tk.Toplevel | None = None
         self.finish_win: tk.Toplevel | None = None
+        self.toast_win: tk.Toplevel | None = None
+        self.update_win: tk.Toplevel | None = None
+        self.pending_update: dict | None = None
+        self._update_asked: set = set()
         self.settings_win: tk.Toplevel | None = None
         self._last_kill_notice = 0.0
         self._said_at = 0.0
@@ -566,6 +579,7 @@ class App:
         self.root.after(500, self.scan_loop)
         self.root.after(15000, self.autosave)
         self.root.after(200, self.poll_tray)
+        self.root.after(60 * 1000, self._schedule_update_check)
 
     def accent(self) -> str:
         """Barva jména postavy: ve světlém vzhledu tmavší, ať je čitelná."""
@@ -599,7 +613,13 @@ class App:
     def visible(self) -> bool:
         return self.root.state() == "normal"
 
-    def bring_to_front(self):
+    def gaming(self) -> bool:
+        return self.gate.game_running
+
+    def bring_to_front(self, user: bool = False):
+        """Ukáže hlavní okno. Když běží hra a nechtěl to uživatel, nedělá nic (nebere hře focus)."""
+        if self.gaming() and not user:
+            return
         self.root.deiconify()
         self.refresh()
         self.root.lift()
@@ -611,19 +631,23 @@ class App:
         try:
             while True:
                 cmd = self.cmd_q.get_nowait()
-                if cmd == "open":
-                    self.bring_to_front()
+                if isinstance(cmd, tuple) and cmd[0] == "update":
+                    self.on_update_info(cmd[1], cmd[2])
+                elif cmd == "open":
+                    self.bring_to_front(user=True)
                 elif cmd == "study":
-                    self.bring_to_front()
+                    self.bring_to_front(user=True)
                     self.choose(MODE_STUDY)
                 elif cmd == "play":
-                    self.bring_to_front()
+                    self.bring_to_front(user=True)
                     self.choose(MODE_PLAY)
                 elif cmd == "stats":
                     self.open_stats()
                 elif cmd == "settings":
-                    self.bring_to_front()
+                    self.bring_to_front(user=True)
                     self.open_settings()
+                elif cmd == "finish":
+                    self.finish_match()
         except queue.Empty:
             pass
         self.root.after(200, self.poll_tray)
@@ -880,11 +904,23 @@ class App:
             flat_button(row, text, CARD2, HOVER2, cmd, font=FONT_S, padx=10, pady=3).pack(side="left", padx=(0, 6))
         show_white()
 
+        heading(T("set_toast"), T("set_toast_info"))
+        corner = tk.StringVar(value=cfg.get("toast_corner", "top-right"))
+        radios(corner, [(c, T("corner_" + c)) for c in ("top-right", "top-left", "bottom-right")])
+
         autostart = tk.BooleanVar(value=AUTOSTART_OK and autostart_enabled())
         if AUTOSTART_OK:
             tk.Checkbutton(body, text=T("set_autostart"), variable=autostart, font=FONT, bg=BG, fg=FG,
                            selectcolor=CARD, activebackground=BG, activeforeground=FG,
                            highlightthickness=0).pack(anchor="w", pady=(12, 0))
+        updates = tk.BooleanVar(value=bool(cfg.get("check_updates", True)))
+        row = tk.Frame(body, bg=BG)
+        row.pack(fill="x", pady=(6, 0))
+        tk.Checkbutton(row, text=T("set_updates"), variable=updates, font=FONT, bg=BG, fg=FG, selectcolor=CARD,
+                       activebackground=BG, activeforeground=FG, highlightthickness=0).pack(side="left")
+        flat_button(row, T("upd_check"), CARD2, HOVER2, lambda: self.check_updates(manual=True), font=FONT_S,
+                    padx=10, pady=3).pack(side="right")
+        tk.Label(body, text=T("set_version", v=VERSION), font=FONT_S, bg=BG, fg=MUTED).pack(anchor="w")
 
         row = tk.Frame(body, bg=BG)
         row.pack(fill="x", pady=(14, 0))
@@ -899,6 +935,7 @@ class App:
                 "game_exe": [v for k, v in games if k == "exe"],
                 "game_roots": [v for k, v in games if k == "dir"],
                 "whitelist_exe": white,
+                "toast_corner": corner.get(), "check_updates": updates.get(),
             }
             need_restart = (lang.get() != get_lang()) or (theme.get() != (cfg.get("theme") or "system"))
             try:
@@ -946,6 +983,9 @@ class App:
         return col
 
     def notice(self, text: str, mood: str, extra: str | None = None, auto_close: int | None = None):
+        if self.gaming():  # během hry nikdy okno uprostřed ani focus – jen lišta v rohu
+            self.toast(text, mood, extra)
+            return
         if self.notice_win is not None:
             try:
                 self.notice_win.destroy()
@@ -967,7 +1007,8 @@ class App:
             anchor="e", padx=18, pady=(4, 14))
         self._center(w)
         w.lift()
-        w.focus_force()
+        if not self.gaming():
+            w.focus_force()
         if auto_close:
             w.after(auto_close * 1000, lambda: w.winfo_exists() and w.destroy())
 
@@ -989,67 +1030,122 @@ class App:
         flat_button(w, T("presence_btn"), TEAL_D, TEAL, self.confirm_presence, width=14, pady=6).pack(pady=(4, 14))
         self._center(w, 0.18)
 
-    def ask_finish(self, ev):
-        """Odpočet před zavřením hry s nabídkou Dohrát zápas."""
-        self._close_finish()
+    def _no_activate(self, w):
+        """Windows: okno, které se po kliknutí neaktivuje a nebere hře myš ani klávesnici."""
+        if not IS_WIN:
+            return
+        try:
+            import ctypes
+            hwnd = int(w.wm_frame(), 16)
+            u32 = ctypes.windll.user32
+            u32.GetWindowLongPtrW.restype = ctypes.c_ssize_t
+            u32.SetWindowLongPtrW.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_ssize_t]
+            style = u32.GetWindowLongPtrW(ctypes.c_void_p(hwnd), -20)  # GWL_EXSTYLE
+            u32.SetWindowLongPtrW(hwnd, -20, style | 0x08000000 | 0x80)  # NOACTIVATE | TOOLWINDOW
+        except Exception:
+            pass
+
+    def _beep(self):
         try:
             if IS_WIN:
                 import winsound
-                winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+                winsound.MessageBeep(winsound.MB_ICONASTERISK)
             else:
                 self.root.bell()
         except Exception:
             pass
-        w = tk.Toplevel(self.root, bg=BG)
-        set_icon(w)
-        self.finish_win = w
-        w.title(T("finish_title"))
+
+    def toast(self, text: str, mood: str, extra: str | None = None, seconds: int | None = 8,
+              build=None) -> tk.Toplevel:
+        """Malá lišta v rohu obrazovky: nebere focus, sama zmizí, kliknutím se zavře."""
+        if self.toast_win is not None:
+            try:
+                self.toast_win.destroy()
+            except tk.TclError:
+                pass
+        w = tk.Toplevel(self.root, bg=self.persona.color)
+        self.toast_win = w
+        w.withdraw()
+        w.overrideredirect(True)
         w.attributes("-topmost", True)
-        w.resizable(False, False)
-        w.protocol("WM_DELETE_WINDOW", self._close_finish)
+        box = tk.Frame(w, bg=BG)
+        box.pack(fill="both", expand=True, padx=(4, 0))
+        spr = SpriteLabel(box, self.sprites, bg=BG)
+        spr.pack(side="left", padx=(6, 0), pady=6, anchor="n")
+        spr.set_mood(mood)
+        col = tk.Frame(box, bg=BG)
+        col.pack(side="left", fill="both", expand=True, padx=(8, 10), pady=8)
+        tk.Label(col, text=text, font=FONT_B, bg=BG, fg=FG, wraplength=240, justify="left").pack(anchor="w")
+        if extra:
+            tk.Label(col, text=extra, font=FONT_S, bg=BG, fg=MUTED, wraplength=240, justify="left").pack(anchor="w")
+        if build:
+            build(col)
+        else:
+            for wid in (w, box, spr, col, *col.winfo_children()):
+                wid.bind("<Button-1>", lambda e: w.winfo_exists() and w.destroy())
+        w.update_idletasks()
+        width, height = max(330, w.winfo_reqwidth()), max(84, w.winfo_reqheight())
+        sw, sh, m = self.root.winfo_screenwidth(), self.root.winfo_screenheight(), 16
+        corner = self.gate.cfg.get("toast_corner", "top-right")
+        x = m if corner == "top-left" else sw - width - m
+        y = sh - height - 64 if corner == "bottom-right" else m + 24
+        w.geometry(f"{width}x{height}+{x}+{y}")
+        self._no_activate(w)
+        w.deiconify()
+        self._beep()
+        if seconds:
+            w.after(seconds * 1000, lambda: w.winfo_exists() and w.destroy())
+        return w
+
+    def ask_finish(self, ev):
+        """Odpočet před zavřením hry: lišta v rohu s tlačítky + na Windows zkratka Ctrl+Shift+D."""
+        self._close_finish()
         text, _ = self.say("deadline", ev.text, min=ev.minutes)
-        col = self._popup_head(w, "alert")
-        tk.Label(col, text=text, font=FONT_TEXT, bg=BG, fg=FG, wraplength=330,
-                 justify="left").pack(anchor="w", padx=14)
-        info = T("finish_info", min=ev.minutes, per=self.gate.cfg.get("finish_match_per_day", 1))
-        tk.Label(col, text=f"{ev.text}\n{info}", font=FONT_S, bg=BG, fg=MUTED, wraplength=330,
-                 justify="left").pack(anchor="w", padx=14, pady=(8, 0))
-        lbl = tk.Label(col, font=FONT_B, bg=BG, fg=YELLOW)
-        lbl.pack(anchor="w", padx=14, pady=(8, 0))
-        btns = tk.Frame(w, bg=BG)
-        btns.pack(pady=(6, 14))
+        hotkey = IS_WIN and self.tray is not None
 
-        def finish():
-            m = self.gate.start_finish()
-            self._close_finish()
-            if m:
-                self.notice(T("finish_ok", min=m), "alert", extra=T("finish_ok_x"), auto_close=6)
-                self.root.after(1500, self.hide)
+        def build(col):
+            lbl = tk.Label(col, font=FONT_B, bg=BG, fg=YELLOW, wraplength=240, justify="left")
+            lbl.pack(anchor="w", pady=(4, 0))
+            if hotkey:
+                tk.Label(col, text=T("toast_finish_hk", min=ev.minutes), font=FONT_S, bg=BG, fg=FG,
+                         wraplength=240, justify="left").pack(anchor="w")
+            row = tk.Frame(col, bg=BG)
+            row.pack(anchor="w", pady=(6, 0))
+            flat_button(row, T("toast_finish_btn"), PINK_D, PINK, self.finish_match, font=FONT_S,
+                        padx=10, pady=2).pack(side="left")
+            flat_button(row, T("toast_close_btn"), CARD2, HOVER2, self._close_game_now, font=FONT_S,
+                        padx=10, pady=2).pack(side="left", padx=6)
 
-        def close_now():
-            if self.gate.deadline_at is not None:
-                self.gate.deadline_at = self.gate.clock.now()
-            self._close_finish()
+            def tick():
+                if not lbl.winfo_exists():
+                    return
+                left = self.gate.deadline_left_sec()
+                if left is None:
+                    self._close_finish()
+                    return
+                lbl.config(text=T("toast_finish", s=int(left)))
+                lbl.after(500, tick)
 
-        flat_button(btns, T("finish_btn", min=ev.minutes), PINK_D, PINK, finish, pady=6).pack(side="left", padx=6)
-        flat_button(btns, T("finish_close"), CARD2, HOVER2, close_now, pady=6).pack(side="left", padx=6)
+            tick()
 
-        def tick():
-            if not w.winfo_exists():
-                return
-            left = self.gate.deadline_left_sec()
-            if left is None:
-                self._close_finish()
-                return
-            lbl.config(text=T("finish_count", s=int(left)))
-            w.after(500, tick)
+        self.finish_win = self.toast(text, "alert", ev.text, seconds=None, build=build)
+        if hotkey:
+            self.tray.hotkey(True)
 
-        tick()
-        self._center(w, 0.25)
-        w.lift()
-        w.focus_force()
+    def finish_match(self):
+        m = self.gate.start_finish()
+        self._close_finish()
+        if m:
+            self.notice(T("finish_ok", min=m), "alert", extra=T("finish_ok_x"), auto_close=6)
+
+    def _close_game_now(self):
+        if self.gate.deadline_at is not None:
+            self.gate.deadline_at = self.gate.clock.now()
+        self._close_finish()
 
     def _close_finish(self):
+        if self.tray is not None:
+            self.tray.hotkey(False)
         if self.finish_win is not None:
             try:
                 self.finish_win.destroy()
@@ -1063,6 +1159,8 @@ class App:
             games = self.detector.find_running()
             for ev in self.gate.tick(games):
                 self.handle(ev)
+            if self.pending_update and not self.gaming() and self.pending_update["version"] not in self._update_asked:
+                self.show_update()
         except Exception:
             log_error(traceback.format_exc())
         self.refresh()
@@ -1085,7 +1183,7 @@ class App:
                     extra += "\n" + T("debt", min=ev.minutes)
                 extra += "\n" + T("left_today", t=fmt_min(self.gate.balance_sec()))
                 self.notice(text, mood, extra=extra)
-                self.bring_to_front()
+                self.bring_to_front()  # během hry (jiná povolená hra běží) nic neudělá
         elif ev.kind == "deadline":
             self.ask_finish(ev)
         elif ev.kind == "finish_done":
@@ -1094,6 +1192,9 @@ class App:
         elif ev.kind == "warn":
             text, mood = self.say("warn", ev.text, min=ev.minutes)
             self.notice(text, mood, auto_close=10)
+        elif ev.kind == "match_warn":
+            text, mood = self.say("match_warn", ev.text, min=ev.minutes)
+            self.notice(text, mood, extra=ev.text, auto_close=10)
         elif ev.kind == "curfew_warn":
             text, mood = self.say("curfew_warn", ev.text, min=ev.minutes)
             self.notice(text, mood, extra=T("curfew_warn_x", **ct))
@@ -1161,6 +1262,92 @@ class App:
         # obrázek se po minutě od poslední hlášky vrátí k náladě podle stavu
         if time.monotonic() - self._said_at > 60:
             self.sprite.set_mood(self.idle_mood())
+
+    # ------------------------------------------------------------------ aktualizace
+    def check_updates(self, manual: bool = False):
+        """Zeptá se GitHubu na novou verzi (ve vlákně, ať appka nezamrzne)."""
+        import updater
+
+        def work():
+            self.cmd_q.put(("update", updater.latest_release(), manual))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _schedule_update_check(self):
+        if self.gate.cfg.get("check_updates", True):
+            self.check_updates()
+        self.root.after(24 * 3600 * 1000, self._schedule_update_check)
+
+    def on_update_info(self, info: dict | None, manual: bool):
+        import updater
+        if info is None:
+            if manual:
+                self.notice(T("upd_offline"), "alert")
+            return
+        if not updater.is_newer(info["version"], VERSION):
+            if manual:
+                self.notice(T("upd_none", v=VERSION), "happy")
+            return
+        self.pending_update = info
+        if manual or info["version"] not in self._update_asked:
+            self.show_update()
+
+    def show_update(self):
+        """Nabídka aktualizace. Během hry počká, až hra skončí (viz scan_loop)."""
+        info = self.pending_update
+        if info is None or self.gaming() or self.update_win is not None:
+            return
+        self._update_asked.add(info["version"])
+        w = tk.Toplevel(self.root, bg=BG)
+        set_icon(w)
+        self.update_win = w
+        w.title(T("upd_title"))
+        w.resizable(False, False)
+
+        def close():
+            self.update_win = None
+            w.destroy()
+
+        w.protocol("WM_DELETE_WINDOW", close)
+        col = self._popup_head(w, "happy")
+        tk.Label(col, text=T("upd_available", v=info["version"].lstrip("v")), font=FONT_TEXT, bg=BG, fg=FG,
+                 wraplength=330, justify="left").pack(anchor="w", padx=14)
+        frozen = getattr(sys, "frozen", False)
+        status = tk.Label(col, text=T("upd_info") if frozen and info["url"] else T("upd_source"), font=FONT_S,
+                          bg=BG, fg=MUTED, wraplength=330, justify="left")
+        status.pack(anchor="w", padx=14, pady=(8, 0))
+        row = tk.Frame(w, bg=BG)
+        row.pack(anchor="e", padx=18, pady=(8, 14))
+
+        def update_now():
+            import updater
+            status.config(text=T("upd_working"), fg=YELLOW)
+            for b in row.winfo_children():
+                b.config(state="disabled")
+
+            def work():
+                try:
+                    exe = updater.download(info["url"])
+                    self.root.after(0, lambda: self._apply_update(exe))
+                except Exception as e:
+                    log_error(traceback.format_exc())
+                    self.root.after(0, lambda: (status.config(text=T("upd_failed", e=e), fg=RED),
+                                                [b.config(state="normal") for b in row.winfo_children()]))
+
+            threading.Thread(target=work, daemon=True).start()
+
+        if frozen and info["url"]:
+            flat_button(row, T("upd_btn"), TEAL_D, TEAL, update_now, padx=14, pady=5).pack(side="right")
+        flat_button(row, T("upd_page"), CARD2, HOVER2, lambda: open_path(info["page"]), padx=10,
+                    pady=5).pack(side="right", padx=6)
+        flat_button(row, T("upd_later"), CARD2, HOVER2, close, padx=10, pady=5).pack(side="right")
+        self._center(w, 0.3)
+
+    def _apply_update(self, new_exe):
+        import updater
+        self.gate.save()
+        updater.start_apply(new_exe, sys.executable, os.getpid())
+        self.root.destroy()  # nová verze počká, až se tahle zavře, přepíše ji a spustí
 
     def autosave(self):
         try:
@@ -1237,6 +1424,12 @@ def selftest() -> int:
             app.settings_win = None
             app.open_override()
             app._close_override()
+            app.toast("selftest", "alert", "toast")
+            app.pending_update = {"version": "v99.0.0", "url": None, "page": ""}
+            app.show_update()
+            assert app.update_win is not None, "update window"
+            app.update_win.destroy()
+            app.update_win = None
             app.notice("selftest", "happy")
             app.hide()
             app.bring_to_front()
@@ -1258,7 +1451,19 @@ def main():
     ap.add_argument("--speed", type=float, default=None)
     ap.add_argument("--fake-time", default=None, help="HH:MM – předstíraný čas startu")
     ap.add_argument("--selftest", action="store_true", help="otevře okna na zkoušku a skončí (CI, build)")
+    ap.add_argument("--apply-update", nargs=2, metavar=("OLD_EXE", "PID"), help=argparse.SUPPRESS)
     args = ap.parse_args()
+    if args.apply_update:
+        from pathlib import Path
+        import updater
+        old_exe = Path(args.apply_update[0])
+        try:
+            updater.apply_update(HERE, old_exe, int(args.apply_update[1]))
+        except Exception:
+            with open(old_exe.parent / "errors.log", "a", encoding="utf-8") as f:
+                f.write(f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] update\n{traceback.format_exc()}\n")
+            subprocess.Popen([str(old_exe)], cwd=str(old_exe.parent))
+        return
     if args.selftest:
         sys.exit(selftest())
 
@@ -1269,6 +1474,11 @@ def main():
     cfg = load_config()
     set_lang(cfg.get("language") or "cs")
     apply_theme(cfg.get("theme"))
+    try:
+        import updater
+        threading.Thread(target=updater.cleanup, daemon=True).start()
+    except Exception:
+        pass
     speed = args.speed if args.speed is not None else (60.0 if args.test else 1.0)
     fake = None
     if args.fake_time:
