@@ -22,7 +22,7 @@ except ImportError:  # appka bez psutil hry nehlídá, ale nespadne
 
 import sys
 
-VERSION = "1.2.0"  # musí odpovídat tagu releasu (v1.2.0), podle něj se hledají aktualizace
+VERSION = "1.3.0"  # musí odpovídat tagu releasu (v1.2.0), podle něj se hledají aktualizace
 
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"
@@ -32,11 +32,14 @@ HERE = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) el
 
 MODE_STUDY = "uceni"
 MODE_PLAY = "hrani"
-MODE_SERIES = "serial"
+MODE_SERIES = "serial"   # starý režim (už není v menu), jen kvůli starým datům
+MODE_PROJECT = "projekt"
+WORK_MODES = ("uceni", "projekt")  # režimy, kdy se vydělává čas a hry se zavírají
 MODE_OTHER = "jine"
 MODE_NONE = "nic"
 
 _MODE_KEYS = {MODE_STUDY: "mode_study", MODE_PLAY: "mode_play", MODE_SERIES: "mode_series",
+              MODE_PROJECT: "mode_project",
               MODE_OTHER: "mode_other", MODE_NONE: "mode_none"}
 
 
@@ -360,6 +363,7 @@ class Gate:
     def today(self) -> dict:
         d = self.data["days"].setdefault(self.day_key(), {})
         d.setdefault("study_sec", 0.0)
+        d.setdefault("project_sec", 0.0)
         d.setdefault("play_sec", 0.0)
         d.setdefault("bonus_sec", 0.0)
         d.setdefault("overrides", [])
@@ -373,8 +377,15 @@ class Gate:
         first = min(study_sec, ks)
         return first * mult + (study_sec - first) * ratio
 
+    def project_earned_sec(self, project_sec: float) -> float:
+        """Projekty: mezi učením a hraním, výchozí 3 min projektu = 1 min hraní (bez rozjezdu)."""
+        return project_sec * float(self.cfg.get("play_per_project", 1 / 3))
+
+    def day_earned(self, d: dict) -> float:
+        return self.earned_sec(d.get("study_sec", 0.0)) + self.project_earned_sec(d.get("project_sec", 0.0))
+
     def day_balance(self, d: dict) -> float:
-        return (self.earned_sec(d.get("study_sec", 0.0)) + d.get("bonus_sec", 0.0)
+        return (self.day_earned(d) + d.get("bonus_sec", 0.0)
                 + d.get("adjust_sec", 0.0) - d.get("play_sec", 0.0))
 
     def balance_sec(self) -> float:
@@ -415,7 +426,7 @@ class Gate:
         self.mode = mode
         self.paused = False
         self.presence_pending_since = None
-        if mode == MODE_STUDY:
+        if mode in WORK_MODES:
             self.next_presence = self.clock.now() + timedelta(
                 minutes=float(self.cfg.get("presence_check_every_min", 20)))
         self.save()
@@ -521,7 +532,7 @@ class Gate:
 
     def _split_blocked(self, games: list, key: str, reason: str, now: datetime, events: list):
         """Hry by se měly zavřít. Vrátí (povolené, zavřít) podle dohrávky / odpočtu."""
-        if key == "kill_study":
+        if key in ("kill_study", "kill_project"):
             return [], games
         if self.finish_until is not None:
             if now < self.finish_until:
@@ -554,8 +565,8 @@ class Gate:
         events: list[Event] = []
         d = self.today()
 
-        # učení
-        if self.mode == MODE_STUDY:
+        # učení / projekt
+        if self.mode in WORK_MODES:
             if self.presence_pending_since is not None:
                 limit = float(self.cfg.get("presence_answer_within_min", 2)) * 60
                 if (now - self.presence_pending_since).total_seconds() > limit:
@@ -564,7 +575,7 @@ class Gate:
                 self.presence_pending_since = now
                 events.append(Event("presence", T("presence"), key="presence"))
             if not self.paused:
-                d["study_sec"] += dt
+                d["project_sec" if self.mode == MODE_PROJECT else "study_sec"] += dt
 
         # výjimka: ve večerku se čekání ruší
         if self.override_ready_at is not None and self.in_curfew():
@@ -593,8 +604,6 @@ class Gate:
             reason = key = None
             if self.in_curfew():
                 reason, key = T("kill_curfew", **self.curfew_times()), "kill_curfew"
-            elif self.mode == MODE_STUDY:
-                reason, key = T("kill_study"), "kill_study"
             elif self.balance_sec() <= 0:
                 if any(pid in self._prev_pids for pid, _ in running_games):
                     reason, key = T("time_up"), "time_up"
@@ -608,6 +617,12 @@ class Gate:
                 allowed = list(running_games)
             if allowed:
                 if self.mode != MODE_PLAY:
+                    if self.mode in WORK_MODES:  # hra při učení/projektu: nezavírat, přepnout na Hraní
+                        m = int(max(0, self.balance_sec()) // 60)
+                        events.append(Event("switched", T("switched", mode=mode_label(self.mode), min=m),
+                                            key="switched", minutes=m))
+                        self.paused = False
+                        self.presence_pending_since = None
                     self.mode = MODE_PLAY
                 self._seen_game_at = now
                 d["play_sec"] += dt
@@ -643,13 +658,15 @@ class Gate:
         return events
 
     # ---- přehled
-    def history(self, days: int = 7) -> list[tuple[str, int, int]]:
+    def history(self, days: int = 7) -> list[tuple[str, int, int, int]]:
+        """(den, učení, hraní, projekty) v minutách za posledních N dní."""
         out = []
         base = self.clock.now()
         for i in range(days):
             k = (base - timedelta(days=i)).strftime("%Y-%m-%d")
             d = self.data["days"].get(k, {})
-            out.append((k, int(d.get("study_sec", 0) // 60), int(d.get("play_sec", 0) // 60)))
+            out.append((k, int(d.get("study_sec", 0) // 60), int(d.get("play_sec", 0) // 60),
+                        int(d.get("project_sec", 0) // 60)))
         return out
 
     def save(self):
@@ -669,10 +686,11 @@ class Gate:
     def day_stats(self, key: str) -> dict:
         d = self.data["days"].get(key, {})
         study = d.get("study_sec", 0.0)
+        project = d.get("project_sec", 0.0)
         play = d.get("play_sec", 0.0)
-        earned = self.earned_sec(study) + d.get("adjust_sec", 0.0)
+        earned = self.day_earned(d) + d.get("adjust_sec", 0.0)
         bonus = d.get("bonus_sec", 0.0)
-        return {"study": study, "play": play, "earned": earned, "bonus": bonus,
+        return {"study": study, "project": project, "play": play, "earned": earned, "bonus": bonus,
                 "unused": max(0.0, earned + bonus - play), "overrides": len(d.get("overrides", []))}
 
     def stats_path(self) -> Path:
@@ -681,12 +699,15 @@ class Gate:
     def stats_rows(self) -> list[list]:
         """Řádky statistik: hlavička, dny, CELKEM. Čísla jsou čísla (minuty), poměr desetinný."""
         rows = [T("stats_head").split("|")]
-        tot = {"study": 0.0, "play": 0.0, "earned": 0.0, "bonus": 0.0, "unused": 0.0, "overrides": 0}
+        tot = {"study": 0.0, "project": 0.0, "play": 0.0, "earned": 0.0, "bonus": 0.0, "unused": 0.0,
+               "overrides": 0}
 
         def row(label, s):
-            ratio = round(s["play"] / s["study"], 2) if s["study"] >= 60 else None
-            return [label, round(s["study"] / 60), round(s["play"] / 60), round(s["earned"] / 60),
-                    round(s["bonus"] / 60), round(s["unused"] / 60), ratio, s["overrides"]]
+            work = s["study"] + s["project"]
+            ratio = round(s["play"] / work, 2) if work >= 60 else None
+            return [label, round(s["study"] / 60), round(s["project"] / 60), round(s["play"] / 60),
+                    round(s["earned"] / 60), round(s["bonus"] / 60), round(s["unused"] / 60), ratio,
+                    s["overrides"]]
 
         for key in sorted(self.data["days"]):
             s = self.day_stats(key)
@@ -707,10 +728,11 @@ class Gate:
         os.replace(tmp, path)  # když je soubor otevřený v Excelu, selže (OSError) a zapíše se příště
         self._stats_rows = rows
 
-    def totals(self) -> tuple[float, float]:
-        """Učení a hraní za celou dobu (sekundy)."""
+    def totals(self) -> tuple[float, float, float]:
+        """Učení, hraní a projekty za celou dobu (sekundy)."""
         days = self.data["days"].values()
-        return sum(d.get("study_sec", 0) for d in days), sum(d.get("play_sec", 0) for d in days)
+        return (sum(d.get("study_sec", 0) for d in days), sum(d.get("play_sec", 0) for d in days),
+                sum(d.get("project_sec", 0) for d in days))
 
 
 
@@ -718,7 +740,7 @@ def _xml(t: str) -> str:
     return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def write_xlsx(path: Path, rows: list[list], widths=(12, 12, 12, 15, 14, 16, 14, 14)):
+def write_xlsx(path: Path, rows: list[list], widths=(12, 12, 14, 12, 15, 14, 16, 22, 14)):
     """Minimální .xlsx bez knihoven: tučná hlavička, ukotvený první řádek, tučný poslední řádek."""
     import zipfile
 
@@ -737,7 +759,8 @@ def write_xlsx(path: Path, rows: list[list], widths=(12, 12, 12, 15, 14, 16, 14,
                 st = ' s="1"' if bold else ""
                 cells.append(f'<c r="{ref}" t="inlineStr"{st}><is><t>{_xml(v)}</t></is></c>')
             else:
-                st = ' s="3"' if (c == 6 and bold) else ' s="2"' if c == 6 else ' s="4"' if bold else ""
+                dec = isinstance(v, float)  # poměr: 2 desetinná místa
+                st = ' s="3"' if (dec and bold) else ' s="2"' if dec else ' s="4"' if bold else ""
                 cells.append(f'<c r="{ref}"{st}><v>{v}</v></c>')
         body.append(f'<row r="{r}">{"".join(cells)}</row>')
     cols = "".join(f'<col min="{i + 1}" max="{i + 1}" width="{w}" customWidth="1"/>' for i, w in enumerate(widths))

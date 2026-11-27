@@ -56,7 +56,14 @@ check(any(e.kind == "kill" for e in evs), "spuštěná hra bez zůstatku se zav�
 # --- učení 30 min -> 30 min hraní
 g.set_mode(MODE_STUDY)
 evs = run(g, c, 15)
-check(any(e.kind == "kill" for e in run(g, c, 0.1, GAME)), "během Učení se hra zavře")
+evs = run(g, c, 0.1, GAME)
+check(any(e.kind == "switched" for e in evs) and g.mode == MODE_PLAY and not any(e.kind == "kill" for e in evs),
+      "hra během Učení se nezavře, appka přepne na Hraní")
+s0 = g.today()["study_sec"]
+run(g, c, 1, GAME)
+check(g.today()["study_sec"] == s0, "během hraní se učení nepočítá")
+g.today()["play_sec"] = 0  # zbytek testu počítá s nehraným dnem
+g.set_mode(MODE_STUDY)
 g.confirm_presence()
 run(g, c, 15)
 g.confirm_presence()
@@ -191,7 +198,7 @@ g.today()["play_sec"] = 40 * 60
 g.save()
 import zipfile
 rows = g.stats_rows()
-check(["2026-11-20", 60, 40, 100, 0, 60, 0.67, 0] in rows and rows[-1][0] == "CELKEM", "statistiky mají správný řádek a součet")
+check(["2026-11-20", 60, 0, 40, 100, 0, 60, 0.67, 0] in rows and rows[-1][0] == "CELKEM", "statistiky mají správný řádek a součet")
 with zipfile.ZipFile(g.stats_path()) as z:
     sheet = z.read("xl/worksheets/sheet1.xml").decode()
 check(g.stats_path().suffix == ".xlsx" and "<v>0.67</v>" in sheet and "CELKEM" in sheet, "stats.xlsx se zapsal s čísly")
@@ -279,6 +286,35 @@ check(g.data_path.stat().st_mtime_ns == t0, "beze změny se data znovu nezapisuj
 g.today()["study_sec"] += 120
 g.save()
 check(g.data_path.stat().st_mtime_ns != t0, "po změně se data zapíšou")
+
+# --- projekty: 3 min projektu = 1 min hraní, hry zavřené, kontrola přítomnosti, statistiky
+from zamek_core import MODE_PROJECT
+g, c = new_gate()
+g.cfg = dict(CFG, play_per_project=1 / 3)
+check(g.set_mode(MODE_PROJECT) is None, "režim Projekty jde zapnout i bez času na hraní")
+evs = run(g, c, 15)
+g.confirm_presence()
+run(g, c, 15)
+check(abs(g.today()["project_sec"] - 30 * 60) < 30 and g.today()["study_sec"] == 0, "30 min projektu se počítá zvlášť")
+check(abs(g.balance_sec() - 10 * 60) < 30, "30 min projektu = 10 min hraní (3:1)")
+evs = run(g, c, 0.1, GAME)
+check(any(e.kind == "switched" for e in evs) and g.mode == MODE_PLAY, "hra během projektu přepne na Hraní")
+g4, c4 = new_gate()
+g4.set_mode(MODE_STUDY)
+evs = g4.tick(GAME)
+check(any(e.kind == "kill" and e.key == "kill_balance" for e in evs) and g4.mode == MODE_STUDY,
+      "bez vydělaného času se hra při učení zavře a učení běží dál")
+g2, c2 = new_gate()
+g2.set_mode(MODE_PROJECT)
+check(any(e.kind == "presence" for e in run(g2, c2, 21)), "projekt: po 20 min 'jsi tu?'")
+run(g2, c2, 10)
+check(g2.paused, "projekt: bez odpovědi se časovač zastaví")
+row = [r for r in g.stats_rows() if r[0] == "2026-11-20"][0]
+check(row[1] == 0 and row[2] == 30 and row[4] == 10, "statistiky mají sloupec Projekty")
+g3, c3 = new_gate()
+g3.today()["study_sec"] = 30 * 60
+g3.today()["project_sec"] = 30 * 60
+check(abs(g3.balance_sec() - (60 + 10) * 60) < 1, "učení (rozjezd 2:1 v testu) a projekty se sčítají")
 
 # --- aktualizace: porovnání verzí
 import updater

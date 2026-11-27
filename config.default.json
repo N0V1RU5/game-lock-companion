@@ -3,6 +3,8 @@
   "language": null,
   "theme": "system",
   "play_per_study": 0.5,
+  "_help_project": "play_per_project = minutes of play for 1 minute of a project (0.333 = 3:1). Projects are between study and play, so they earn less than study.",
+  "play_per_project": 0.333,
   "_help_kickstart": "The first kickstart_min minutes of study PER DAY are multiplied by kickstart_multiplier.",
   "kickstart_min": 30,
   "kickstart_multiplier": 1.0,

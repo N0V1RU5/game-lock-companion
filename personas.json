@@ -120,6 +120,22 @@
           "Za {min} min večerka~ Nový zápas už ne, jo? 🌙",
           "Psst, {min} minut do večerky. Tenhle dohraj a další nezačínej 💙",
           "Večerka se blíží ({min} min). Žádný nový rankedy~ 🎵"
+        ],
+        "project_start": [
+          "Projekt! Tohle mám ráda – učíš se a bavíš se zároveň 🛠🎵",
+          "Jdeme tvořit~ Za 3 minuty projektu je 1 minuta hraní. Ukaž, co umíš!",
+          "Ooo, na čem dneska děláš? Já ti zatím budu fandit 💙",
+          "Režim projekt zapnutej~ Ozvu se za chvíli, jestli tu pořád jsi!"
+        ],
+        "kill_project": [
+          "Hej, teď děláš na projektu~ Hru jsem zavřela, dokonči to 🛠",
+          "Projekt nejdřív! Hra počká, slibuju 💙",
+          "Ehm, tohle není tvůj projekt 👀 Zpátky k tvoření~"
+        ],
+        "switched": [
+          "Nachytala jsem tě 😄 Hraješ? Tak jsem přepnula na Hraní, máš {min} min~",
+          "Ha, hra! Učení jsem stopla a přepnula na Hraní. Zbývá ti {min} min 🎮",
+          "Aha, pauza od práce? Počítám to jako hraní – {min} min 💙"
         ]
       },
       "en": {
@@ -238,6 +254,22 @@
           "Curfew in {min} min~ No new matches, OK? 🌙",
           "Psst, {min} minutes to curfew. Finish this one, don't start another 💙",
           "Curfew is coming ({min} min). No new ranked games~ 🎵"
+        ],
+        "project_start": [
+          "A project! I love these – you learn and have fun at once 🛠🎵",
+          "Let's build~ 3 minutes of project = 1 minute of play. Show me what you've got!",
+          "Ooh, what are you working on today? I'll cheer for you 💙",
+          "Project mode on~ I'll check in on you in a bit!"
+        ],
+        "kill_project": [
+          "Hey, you're on a project right now~ I closed the game, finish it 🛠",
+          "Project first! The game can wait, promise 💙",
+          "Umm, that's not your project 👀 Back to building~"
+        ],
+        "switched": [
+          "Caught you 😄 Playing? I switched to Play, you have {min} min~",
+          "Ha, a game! I stopped the study timer and switched to Play. {min} min left 🎮",
+          "Oh, a break from work? I'm counting it as play – {min} min 💙"
         ]
       }
     }

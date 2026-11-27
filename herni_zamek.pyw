@@ -22,7 +22,7 @@ from tkinter import filedialog, messagebox
 
 from i18n import LANGS, T, get_lang, set_lang
 from zamek_core import (
-    HERE, IS_MAC, IS_WIN, MODE_OTHER, MODE_PLAY, MODE_SERIES, MODE_STUDY, VERSION,
+    HERE, IS_MAC, IS_WIN, MODE_OTHER, MODE_PLAY, MODE_PROJECT, MODE_STUDY, VERSION, WORK_MODES,
     Clock, GameDetector, Gate, fmt_min, kill_processes, load_config, mode_label, psutil, save_config, load_json,
 )
 
@@ -100,7 +100,7 @@ MOODS = ("happy", "study", "angry", "sleepy", "alert")
 # která nálada patří ke které hlášce
 MOOD_FOR = {
     "greet": "happy", "play_start": "happy", "time_up": "happy", "override_ready": "happy",
-    "study_start": "study", "presence": "study",
+    "study_start": "study", "presence": "study", "project_start": "study", "kill_project": "angry", "switched": "alert",
     "deny_balance": "angry", "kill_balance": "angry", "kill_study": "angry",
     "deny_curfew": "sleepy", "kill_curfew": "sleepy", "curfew_warn": "sleepy",
     "warn": "alert", "deadline": "alert", "finish_done": "happy",
@@ -363,7 +363,7 @@ class Tray:
                 log_error(traceback.format_exc())
 
         entries = [(T(k), lambda c=c: self.q.put(c)) for k, c in (
-            ("tray_open", "open"), ("tray_study", "study"), ("tray_play", "play"),
+            ("tray_open", "open"), ("tray_study", "study"), ("tray_project", "project"), ("tray_play", "play"),
             ("tray_stats", "stats"), ("tray_settings", "settings"))]
         if AUTOSTART_OK:
             entries += [None, (T("tray_autostart" if IS_WIN else "set_autostart"), toggle, autostart_enabled)]
@@ -525,7 +525,7 @@ class App:
         for i, (mode, text, color, hover) in enumerate([
             (MODE_STUDY, T("btn_study"), TEAL_D, TEAL),
             (MODE_PLAY, T("btn_play"), PINK_D, PINK),
-            (MODE_SERIES, T("btn_series"), CARD2, HOVER2),
+            (MODE_PROJECT, T("btn_project"), CARD2, HOVER2),
             (MODE_OTHER, T("btn_other"), CARD2, HOVER2),
         ]):
             b = flat_button(btns, text, color, hover, lambda m=mode: self.choose(m), pady=11)
@@ -559,13 +559,13 @@ class App:
         hist = tk.Frame(root, bg=BG)
         hist.pack(fill="x", pady=(12, 0), **pad)
         self.lbl_hist = tk.Label(hist, font=FONT, bg=BG, fg=MUTED, anchor="w", justify="left")
-        self.lbl_hist.pack(side="left")
+        self.lbl_hist.pack(anchor="w")
         side = tk.Frame(hist, bg=BG)
-        side.pack(side="right", anchor="n")
+        side.pack(anchor="e", pady=(8, 0))
         flat_button(side, T("btn_stats"), CARD2, HOVER2, self.open_stats, font=FONT_S,
-                    padx=10, pady=3).pack(fill="x")
+                    padx=10, pady=3).pack(side="left")
         flat_button(side, T("btn_settings"), CARD2, HOVER2, self.open_settings, font=FONT_S,
-                    padx=10, pady=3).pack(fill="x", pady=(4, 0))
+                    padx=10, pady=3).pack(side="left", padx=(6, 0))
 
         tk.Label(root, text=T("footer"), font=FONT_S, bg=BG, fg=MUTED, wraplength=420, justify="left").pack(
             side="bottom", anchor="w", pady=10, **pad)
@@ -598,7 +598,7 @@ class App:
         g = self.gate
         if g.in_curfew():
             return "sleepy"
-        if g.mode == MODE_STUDY:
+        if g.mode in WORK_MODES:
             return "study"
         return "happy"
 
@@ -638,6 +638,9 @@ class App:
                 elif cmd == "study":
                     self.bring_to_front(user=True)
                     self.choose(MODE_STUDY)
+                elif cmd == "project":
+                    self.bring_to_front(user=True)
+                    self.choose(MODE_PROJECT)
                 elif cmd == "play":
                     self.bring_to_front(user=True)
                     self.choose(MODE_PLAY)
@@ -672,6 +675,11 @@ class App:
             text, mood = self.say("study_start", T("study_started"))
             self.notice(text, mood, extra=T("study_started_x", min=self.gate.cfg.get("presence_check_every_min", 20)),
                         auto_close=7)
+            self.root.after(1500, self.hide)
+        elif mode == MODE_PROJECT:
+            text, mood = self.say("project_start", T("project_started"))
+            self.notice(text, mood, auto_close=7,
+                        extra=T("project_started_x", min=self.gate.cfg.get("presence_check_every_min", 20)))
             self.root.after(1500, self.hide)
         elif mode == MODE_PLAY:
             m = int(self.gate.balance_sec() // 60)
@@ -1192,6 +1200,9 @@ class App:
         elif ev.kind == "warn":
             text, mood = self.say("warn", ev.text, min=ev.minutes)
             self.notice(text, mood, auto_close=10)
+        elif ev.kind == "switched":
+            text, mood = self.say("switched", ev.text, min=ev.minutes)
+            self.notice(text, mood, extra=ev.text, auto_close=10)
         elif ev.kind == "match_warn":
             text, mood = self.say("match_warn", ev.text, min=ev.minutes)
             self.notice(text, mood, extra=ev.text, auto_close=10)
@@ -1214,8 +1225,9 @@ class App:
             text = str(m) if m < 100 else f"{m // 60}h"
             if g.in_curfew():
                 color, text, tip = PURPLE, "Zz", T("tip_curfew", **ct)
-            elif g.mode == MODE_STUDY and not g.paused:
-                color, tip = TEAL_D, T("tip_study", t=fmt_min(bal))
+            elif g.mode in WORK_MODES and not g.paused:
+                color = TEAL_D
+                tip = T("tip_project" if g.mode == MODE_PROJECT else "tip_study", t=fmt_min(bal))
             elif bal > 0:
                 color, tip = GREEN, T("tip_play", t=fmt_min(bal))
             else:
@@ -1226,13 +1238,15 @@ class App:
         g = self.gate
         d = g.today()
         mode_text = mode_label(g.mode)
-        if g.mode == MODE_STUDY and g.paused:
+        if g.mode in WORK_MODES and g.paused:
             mode_text += T("paused_suffix")
         self.lbl_mode.config(text=T("now", mode=mode_text))
         self.lbl_balance.config(text=T("can_play", t=fmt_min(bal)), fg=GREEN if bal > 0 else RED)
         extra = T("today_bonus", t=fmt_min(d["bonus_sec"])) if d["bonus_sec"] else ""
+        if d.get("project_sec"):
+            extra = T("today_project", t=fmt_min(d["project_sec"])) + extra
         self.lbl_stats.config(text=T("today_stats", s=fmt_min(d["study_sec"]), p=fmt_min(d["play_sec"])) + extra)
-        if g.mode == MODE_STUDY and g.paused:
+        if g.mode in WORK_MODES and g.paused:
             if not self.pause_frame.winfo_ismapped():
                 self.pause_frame.pack(fill="x", padx=18, pady=(10, 0), after=self.card)
         else:
@@ -1254,10 +1268,12 @@ class App:
             self.btn_override.config(text=T("btn_override"), state="normal")
 
         hist = g.history(7)
-        s7 = sum(s for _, s, _ in hist) * 60
-        p7 = sum(p for _, _, p in hist) * 60
-        ts, tp = g.totals()
-        self.lbl_hist.config(text=T("hist", s7=fmt_min(s7), p7=fmt_min(p7), ts=fmt_min(ts), tp=fmt_min(tp)))
+        s7 = sum(h[1] for h in hist) * 60
+        p7 = sum(h[2] for h in hist) * 60
+        j7 = sum(h[3] for h in hist) * 60
+        ts, tp, tj = g.totals()
+        self.lbl_hist.config(text=T("hist", s7=fmt_min(s7), p7=fmt_min(p7), j7=fmt_min(j7),
+                                    ts=fmt_min(ts), tp=fmt_min(tp), tj=fmt_min(tj)))
 
         # obrázek se po minutě od poslední hlášky vrátí k náladě podle stavu
         if time.monotonic() - self._said_at > 60:

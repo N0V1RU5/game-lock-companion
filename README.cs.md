@@ -1,10 +1,10 @@
-# Herní zámek (Game Lock Companion) 🎵
+# Herní zámek (Game Lock Companion)
 
 **Nejdřív učení, pak hry.** Malá appka pro Windows, macOS a Linux, která tě nepustí hrát, dokud se neučíš.
 Každá minuta učení ti vydělá čas na hraní. Miku ti dělá společnost, fandí ti a zavře hru,
 když čas dojde.
 
-> **[🇬🇧 English](README.md)** · Nápad a návrh: **[N0V1RU5](https://github.com/N0V1RU5)** · Open source (MIT)
+> **[English](README.md)** · Nápad a návrh: **[N0V1RU5](https://github.com/N0V1RU5)** · Open source (MIT)
 
 <p>
   <img src="docs/screenshots/main_cs_dark.png" width="300" alt="Hlavní okno, tmavý vzhled">
@@ -17,7 +17,8 @@ vypneš vždycky. Ale přidá přesně tolik tření, abys šel nejdřív dělat
 ## Co umí
 
 - **Čas na hraní za učení.** Výchozí: prvních 30 min učení za den 1:1, potom 2 min učení = 1 min hraní.
-- **Zavře hru**, když ti došel čas, když jsi v režimu Učení a ve **večerku** (23:00–6:00).
+- **Projekty** (vlastní programování, kreslení, hudba…) jsou mezi učením a hraním: taky vydělávají čas, ale méně (3 min = 1 min hraní), aby nenahradily učení.
+- **Zavře hru**, když ti došel čas, a ve **večerku** (23:00–6:00). Když při učení spustíš hru, appka tě jen přepne na Hraní (pokud máš vydělaný čas), hru nezavře.
 - **„Jsi tu?“** každých 20 min při učení, aby časovač neběžel, když jsi pryč.
 - **Neruší tě ve hře.** Když běží hra, upozornění je jen malá lišta v rohu, sama zmizí a nikdy hře nevezme myš ani klávesnici (na Windows ji ani kliknutí neaktivuje).
 - **Dohrání zápasu.** Když čas dojde uprostřed hry, máš 90 s: ve hře zmáčkni **Ctrl+Shift+D** (Windows) nebo klikni *Dohrát* v liště v rohu. Max 20 min, 1× denně, minuty navíc se odečtou zítra.
@@ -42,7 +43,7 @@ vypneš vždycky. Ale přidá přesně tolik tření, abys šel nejdřív dělat
 2. Rozbal celou složku někam natrvalo, třeba do `Dokumenty\GameLockCompanion` (ne do Stažených). Složka `_internal` musí zůstat vedle exe.
 3. Spusť **`GameLockCompanion.exe`**. Windows SmartScreen může varovat, protože appka není podepsaná: *Další informace → Přesto spustit*. Některé antiviry nemají rády appky, co zavírají jiné procesy; je to falešný poplach.
 4. Vyber jazyk. Appka se sama přidá do spouštění s Windows (vypneš v menu ikony u hodin).
-5. Otevři **⚙ Nastavení** a přidej hry mimo Steam (**+ Hra (.exe)** nebo **+ Složka s hrami**).
+5. Otevři **Nastavení** a přidej hry mimo Steam (**+ Hra (.exe)** nebo **+ Složka s hrami**).
 
 ### Aktualizace
 
@@ -57,7 +58,7 @@ Nastavení i data zůstanou, protože v zipu nejsou.
 
 Stáhni `GameLockCompanion-macos.zip` nebo `GameLockCompanion-linux.zip` z
 [Releases](https://github.com/N0V1RU5/game-lock-companion/releases/latest), rozbal a spusť `GameLockCompanion`,
-nebo appku spusť ze zdrojáků (níž). V **⚙ Nastavení** zapni **Spouštět po přihlášení do systému**.
+nebo appku spusť ze zdrojáků (níž). V **Nastavení** zapni **Spouštět po přihlášení do systému**.
 
 - **macOS:** ikona v horní liště není, appka je v Docku a zavřením okna se minimalizuje.
   Napoprvé ji může zablokovat Gatekeeper: pravý klik na appku → *Otevřít*.
@@ -81,9 +82,10 @@ Na Linuxu může být potřeba doinstalovat Tk: `sudo apt install python3-tk`. N
 
 | Režim | Co se děje |
 |---|---|
-| 📚 Učit se | Běží časovač učení, hry se zavírají. Každých 20 min „Jsi tu?“ |
-| 🎮 Hrát | Hry můžou běžet, dokud máš čas. Odečítá se jen, když hra opravdu běží. |
-| 📺 Seriál / ✨ Něco jiného | Nic se nepočítá. |
+| Učit se | Běží časovač učení. Každých 20 min „Jsi tu?“ Spuštění hry přepne na Hraní (učení se přestane počítat). |
+| Hrát | Hry můžou běžet, dokud máš čas. Odečítá se jen, když hra opravdu běží. |
+| Projekty | Jako Učit se, ale 3 min projektu = 1 min hraní. Tvoje vlastní buildy (třeba hra, kterou děláš) se za hru nepočítají, pokud neleží v hlídané složce. |
+| Něco jiného | Nic se nepočítá. |
 
 - Čas na hraní platí jen ten den, o půlnoci se vynuluje (žádné šetření na víkend).
 - Appka kontroluje hry každé 2 s. Po vypnutí hry se sama přepne z *Hraju* na *Něco jiného*.
@@ -99,12 +101,13 @@ Na Linuxu může být potřeba doinstalovat Tk: `sudo apt install python3-tk`. N
 
 ## Nastavení
 
-Jazyk, vzhled a hry jsou v **⚙ Nastavení**. Pravidla jsou v `config.json`
+Jazyk, vzhled a hry jsou v **Nastavení**. Pravidla jsou v `config.json`
 (vytvoří se vedle appky při prvním spuštění, výchozí hodnoty jsou v `config.default.json`):
 
 | Klíč | Výchozí | Význam |
 |---|---|---|
 | `play_per_study` | `0.5` | min hraní za 1 min učení (po rozjezdu) |
+| `play_per_project` | `0.333` | min hraní za 1 min projektu (3:1) |
 | `kickstart_min` / `kickstart_multiplier` | `30` / `1.0` | prvních N min učení za den má tenhle poměr |
 | `curfew_start` / `curfew_end` | `"23:00"` / `"06:00"` | večerka, hry se zavřou vždycky |
 | `curfew_warning_min` | `15` | varování před večerkou |
