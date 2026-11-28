@@ -22,7 +22,7 @@ except ImportError:  # appka bez psutil hry nehlídá, ale nespadne
 
 import sys
 
-VERSION = "1.3.0"  # musí odpovídat tagu releasu (v1.2.0), podle něj se hledají aktualizace
+VERSION = "1.4.0"  # musí odpovídat tagu releasu, podle něj se hledají aktualizace
 
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"

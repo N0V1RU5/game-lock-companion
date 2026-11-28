@@ -71,11 +71,21 @@ def system_theme() -> str:
     return "dark"
 
 
-def apply_theme(name: str | None):
+ACCENTS = {  # hlavní barva appky podle maskota (zbytek vzhledu je stejný)
+    "pink": {"dark": {"TEAL": "#EC6FA8", "TEAL_D": "#C9437F", "ACCENT": "#EC6FA8",
+                      "PINK": "#39C5BB", "PINK_D": "#2A9D95"},
+             "light": {"TEAL": "#EC6FA8", "TEAL_D": "#C23C7A", "ACCENT": "#B8336F",
+                       "PINK": "#39C5BB", "PINK_D": "#1F8F87"}},
+}
+
+
+def apply_theme(name: str | None, accent: str = "teal"):
     """Nastaví barvy (globální konstanty) před stavbou oken. "system" = podle Windows."""
     global THEME
     THEME = name if name in THEMES else system_theme()
     globals().update(THEMES[THEME])
+    if accent in ACCENTS:
+        globals().update(ACCENTS[accent][THEME])
 
 
 apply_theme("dark")
@@ -95,7 +105,7 @@ FONT_TEXT = (_F, 13)
 
 FALLBACK_PERSONA = {"name": "Miku", "emoji": "🎵", "color": "#39C5BB", "lines": {}}
 
-IMG_DIR = HERE / "obrazky"
+IMG_DIR = HERE / "obrazky"  # výchozí (Miku); každý maskot má v personas.json vlastní "images"
 MOODS = ("happy", "study", "angry", "sleepy", "alert")
 # která nálada patří ke které hlášce
 MOOD_FOR = {
@@ -117,11 +127,15 @@ def log_error(text: str):
 
 # ------------------------------------------------------------------ hlášky
 class Persona:
-    def __init__(self, data: dict):
-        self.p = next(iter(data.values())) if data else FALLBACK_PERSONA
-        self.name = self.p.get("name", "Miku")
+    def __init__(self, data: dict, key: str | None = None):
+        self.key = key if data and key in data else (next(iter(data)) if data else "miku")
+        self.p = data.get(self.key, FALLBACK_PERSONA) if data else FALLBACK_PERSONA
+        name = self.p.get("name", "Miku")
+        self.name = name.get(get_lang()) or name.get("cs") or "Miku" if isinstance(name, dict) else name
         self.emoji = self.p.get("emoji", "🎵")
         self.color = self.p.get("color", "#39C5BB")
+        self.accent = self.p.get("accent", "teal")
+        self.images = HERE / self.p.get("images", "obrazky")
 
     def lines(self) -> dict:
         lines = self.p.get("lines", {})
@@ -137,21 +151,34 @@ class Persona:
             return fallback
 
 
+def persona_names(data: dict) -> list[tuple[str, str]]:
+    out = []
+    for key, p in data.items():
+        name = p.get("name", key)
+        out.append((key, name.get(get_lang()) or name.get("cs") or key if isinstance(name, dict) else name))
+    return out
+
+
+def load_persona(cfg: dict) -> Persona:
+    return Persona(load_json(HERE / "personas.json", {}), cfg.get("persona"))
+
+
 # ------------------------------------------------------------------ obrázky
 class Sprites:
     """Načte obrazky/<nálada>.gif|.png (snímky animace). Chybějící obrázek = bez obrázku."""
 
     MAX_SIDE = 110
 
-    def __init__(self):
+    def __init__(self, img_dir=None):
         self.cache: dict[str, tuple[list, int]] = {}
+        self.dir = img_dir or IMG_DIR
 
     def get(self, mood: str) -> tuple[list, int]:
         if mood in self.cache:
             return self.cache[mood]
         frames, delay = [], 500
         for ext in (".gif", ".png"):
-            path = IMG_DIR / f"{mood}{ext}"
+            path = self.dir / f"{mood}{ext}"
             if not path.exists():
                 continue
             try:
@@ -469,7 +496,7 @@ class App:
         self.scan_ms = scan_ms
         self.persona = persona
         self.restart = False
-        self.sprites = Sprites()
+        self.sprites = Sprites(persona.images)
         self.notice_win: tk.Toplevel | None = None
         self.presence_win: tk.Toplevel | None = None
         self.override_win: tk.Toplevel | None = None
@@ -832,8 +859,11 @@ class App:
 
         lang = tk.StringVar(value=get_lang())
         theme = tk.StringVar(value=cfg.get("theme") or "system")
+        mascot = tk.StringVar(value=self.persona.key)
         heading(T("set_lang"))
         radios(lang, list(LANGS.items()))
+        heading(T("set_mascot"))
+        radios(mascot, persona_names(load_json(HERE / "personas.json", {})))
         heading(T("set_theme"))
         radios(theme, [("system", T("theme_system")), ("dark", T("theme_dark")), ("light", T("theme_light"))])
 
@@ -943,9 +973,10 @@ class App:
                 "game_exe": [v for k, v in games if k == "exe"],
                 "game_roots": [v for k, v in games if k == "dir"],
                 "whitelist_exe": white,
-                "toast_corner": corner.get(), "check_updates": updates.get(),
+                "toast_corner": corner.get(), "check_updates": updates.get(), "persona": mascot.get(),
             }
-            need_restart = (lang.get() != get_lang()) or (theme.get() != (cfg.get("theme") or "system"))
+            need_restart = (lang.get() != get_lang()) or (theme.get() != (cfg.get("theme") or "system")) \
+                or mascot.get() != self.persona.key
             try:
                 save_config(changes)
             except OSError:
@@ -1414,7 +1445,8 @@ def selftest() -> int:
     from pathlib import Path
     cfg = load_config()
     set_lang(cfg.get("language") or "en")
-    apply_theme(cfg.get("theme"))
+    persona = load_persona(cfg)
+    apply_theme(cfg.get("theme"), persona.accent)
     errors: list[str] = []
 
     class NoGames:
@@ -1424,7 +1456,7 @@ def selftest() -> int:
 
     root = tk.Tk()
     gate = Gate(cfg, Path(tempfile.mkdtemp()) / "data.json", Clock())
-    app = App(root, gate, NoGames(), scan_ms=200, persona=Persona(load_json(HERE / "personas.json", {})))
+    app = App(root, gate, NoGames(), scan_ms=200, persona=persona)
     root.report_callback_exception = lambda *a: errors.append("".join(traceback.format_exception(*a)))
 
     def run():
@@ -1489,7 +1521,7 @@ def main():
 
     cfg = load_config()
     set_lang(cfg.get("language") or "cs")
-    apply_theme(cfg.get("theme"))
+    apply_theme(cfg.get("theme"), load_persona(cfg).accent)
     try:
         import updater
         threading.Thread(target=updater.cleanup, daemon=True).start()
@@ -1517,7 +1549,7 @@ def main():
     gate = Gate(cfg, data_path, Clock(speed=speed, fake_start=fake))
     settings = gate.data.setdefault("settings", {})
     settings.pop("persona", None)
-    persona = Persona(load_json(HERE / "personas.json", {}))
+    persona = load_persona(cfg)  # až po výběru jazyka (jméno maskota je v jazyce appky)
     if getattr(sys, "frozen", False) and not settings.get("autostart_set"):
         try:  # .exe se při prvním spuštění sám přidá do spouštění s Windows
             set_autostart(True)

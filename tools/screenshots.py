@@ -18,6 +18,7 @@ OUT = ROOT / "docs" / "screenshots"
 SHOTS = [
     ("en", "dark", "main"), ("en", "light", "main"), ("cs", "dark", "main"), ("cs", "light", "main"),
     ("en", "dark", "finish"), ("en", "light", "settings"), ("en", "dark", "first"),
+    ("cs", "dark", "main", "nahac"), ("en", "light", "main", "nahac"),
 ]
 
 
@@ -30,7 +31,7 @@ def window_png(win, name):
     ImageGrab.grab((r.left, r.top, r.right, r.bottom)).save(OUT / name)
 
 
-def one(lang, theme, what):
+def one(lang, theme, what, persona="miku"):
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
     sys.path.insert(0, str(ROOT))
     loader = importlib.machinery.SourceFileLoader("hz", str(ROOT / "herni_zamek.pyw"))
@@ -40,10 +41,11 @@ def one(lang, theme, what):
     from zamek_core import MODE_PLAY, Clock, Gate, load_json
 
     i18n.set_lang(lang)
-    hz.apply_theme(theme)
+    personas = load_json(ROOT / "personas.json", {})
+    hz.apply_theme(theme, personas.get(persona, {}).get("accent", "teal"))
     hz.TRAY_OK = False  # bez ikony u hodin
     root = hz.tk.Tk()
-    name = f"{what}_{lang}_{theme}.png"
+    name = f"{what}_{lang}_{theme}.png" if persona == "miku" else f"{what}_{persona}_{lang}_{theme}.png"
     if what == "first":
         root.after(800, lambda: (window_png(root, name), root.quit()))
         hz.choose_language(root)
@@ -61,7 +63,7 @@ def one(lang, theme, what):
         def find_running(self):
             return []
 
-    app = hz.App(root, gate, NoGames(), scan_ms=1000, persona=hz.Persona(load_json(ROOT / "personas.json", {})))
+    app = hz.App(root, gate, NoGames(), scan_ms=1000, persona=hz.Persona(personas, persona))
     app.say("greet", "")
     root.attributes("-topmost", True)
 
@@ -97,7 +99,7 @@ def one(lang, theme, what):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 4:
+    if len(sys.argv) >= 4:
         one(*sys.argv[1:])
     else:
         OUT.mkdir(parents=True, exist_ok=True)

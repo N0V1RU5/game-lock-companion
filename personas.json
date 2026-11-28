@@ -3,6 +3,8 @@
     "name": "Miku",
     "emoji": "🎵",
     "color": "#39C5BB",
+    "accent": "teal",
+    "images": "obrazky",
     "lines": {
       "cs": {
         "greet": [
@@ -270,6 +272,208 @@
           "Caught you 😄 Playing? I switched to Play, you have {min} min~",
           "Ha, a game! I stopped the study timer and switched to Play. {min} min left 🎮",
           "Oh, a break from work? I'm counting it as play – {min} min 💙"
+        ]
+      }
+    }
+  },
+  "nahac": {
+    "name": {
+      "cs": "Naháč",
+      "en": "Baldie"
+    },
+    "emoji": "🐾",
+    "color": "#EC6FA8",
+    "accent": "pink",
+    "images": "obrazky_nahac",
+    "lines": {
+      "cs": {
+        "greet": [
+          "Mňau! Co dneska děláme? Nejdřív učení, pak hraní, jo? 🐾",
+          "Prrr~ Jsem tu. Vyber, co jdeš dělat.",
+          "Ahoj! Nemám chlupy, ale mám plán: učení, pak zábava 🐾"
+        ],
+        "study_start": [
+          "Mňau, jdeme na to! Sednu si ti na klávesnici. Ne, dělám si srandu 📚",
+          "Učíme se! Já budu dělat, že spím, ale hlídám tě 🐾",
+          "Prrr~ Každá minuta učení se počítá. Do toho!"
+        ],
+        "project_start": [
+          "Projekt! Já vím, že tohle tě baví 🛠🐾",
+          "Mňau~ 3 minuty projektu = 1 minuta hraní. Tvoř!",
+          "Ukaž, na čem děláš. Já budu jen koukat velkýma očima 👀"
+        ],
+        "play_start": [
+          "Mňau! Máš {min} min, užij si to 🎮",
+          "Hraj, já si zatím zdřímnu. {min} minut, jo? 🐾",
+          "Vydělal sis {min} min! Prrr~"
+        ],
+        "deny_balance": [
+          "Mňau, ne ne. Dneska ještě nemáš naučený minutky 📚",
+          "Nejdřív učení! Já taky nejdřív papám, pak spím 🐾",
+          "Zkus aspoň 15 minut učení, pak si zahraješ. Prrr~"
+        ],
+        "deny_curfew": [
+          "Je noc, mňau. Hry spí a ty bys měl taky 🌙",
+          "Večerka! Pojď do pelíšku, zahřeju tě 🐾",
+          "Zítra budeš rád, že ses vyspal. Prrr~ 💤"
+        ],
+        "kill_study": [
+          "Mňau! Teď se učíme, hru jsem zavřel 📚",
+          "Chytil jsem tě 🐾 Nejdřív učení!"
+        ],
+        "kill_project": [
+          "Mňau, teď děláš projekt! Hra počká 🛠",
+          "Projekt nejdřív, hra potom 🐾"
+        ],
+        "kill_balance": [
+          "Minutky došly, mňau. Hru jsem zavřel 🐾",
+          "Bez naučených minut to nejde. Chvilku se uč a je to zpátky~",
+          "Zavřeno! Pravidla jsou pravidla, prrr~"
+        ],
+        "kill_curfew": [
+          "Večerka, mňau! Hru jsem zavřel, jdi spát 🌙",
+          "Je noc. Hra pryč, ty do peřin 💤🐾",
+          "Vyspalý hráč = lepší hráč. Dobrou, mňau~"
+        ],
+        "time_up": [
+          "Čas vypršel! Dodržel jsi to, jsem na tebe pyšný 🐾",
+          "Konec hry, mňau~ Protáhni se jako kočka!",
+          "Hotovo! Napij se vody, já si dám misku 💧"
+        ],
+        "warn": [
+          "Mňau, zbývá {min} min~ Pomalu dohrávej 🐾",
+          "Ještě {min} minut! Žádný nový zápasy, jo?",
+          "{min} min do konce. Najdi si dobrý místo na uložení~"
+        ],
+        "curfew_warn": [
+          "Za {min} min je večerka, mňau 🌙",
+          "Pozor, {min} minut do večerky! Ulož se 🐾",
+          "Večerka za {min} min. Pelíšek už čeká 💤"
+        ],
+        "match_warn": [
+          "Za {min} min večerka, mňau~ Nový zápas už ne 🌙",
+          "Psst, {min} minut do večerky. Tenhle dohraj a dost 🐾",
+          "Žádný nový rankedy, večerka je za {min} min~"
+        ],
+        "presence": [
+          "Mňau? Jsi tu ještě? 🐾",
+          "Ťuk ťuk tlapkou~ Pořád se učíš?",
+          "Kontrola! Klikni, ať vím, že jsi neusnul jako já 💤"
+        ],
+        "override_ready": [
+          "Výjimka platí! Máš {min} min navíc, mňau 🎮",
+          "OK, {min} minut je tvých. Ale zítra učení, jo? 🐾",
+          "Výjimka schválena! {min} min. Prrr~"
+        ],
+        "deadline": [
+          "Mňau! Čas končí~ Jsi uprostřed zápasu? 🐾",
+          "Stop! Dohráváš ještě? Klikni, ať tě nevyhodím~",
+          "Konec času! Jestli máš rozehráno, můžeš to dohrát 🐾"
+        ],
+        "finish_done": [
+          "Dohráno! Dobrá práce, žes to vypnul sám 🐾",
+          "Zápas hotovej, mňau~ Teď pauza.",
+          "Super, dohrál jsi a vypnul. Prrr~"
+        ],
+        "switched": [
+          "Mňau, chytil jsem tě 😼 Přepnul jsem na Hraní, máš {min} min.",
+          "Hra! Učení jsem stopnul a přepnul na Hraní. Zbývá ti {min} min 🐾",
+          "Pauza od práce? Počítám to jako hraní, {min} min~"
+        ]
+      },
+      "en": {
+        "greet": [
+          "Meow! What are we doing today? Study first, then play, OK? 🐾",
+          "Prrr~ I'm here. Pick what you're up to.",
+          "Hi! I have no fur, but I have a plan: study, then fun 🐾"
+        ],
+        "study_start": [
+          "Meow, let's go! I'll sit on your keyboard. Just kidding 📚",
+          "Study time! I'll pretend to sleep, but I'm watching you 🐾",
+          "Prrr~ Every minute of study counts. Go!"
+        ],
+        "project_start": [
+          "A project! I know you love these 🛠🐾",
+          "Meow~ 3 minutes of project = 1 minute of play. Build!",
+          "Show me what you're making. I'll just stare with my big eyes 👀"
+        ],
+        "play_start": [
+          "Meow! You have {min} min, enjoy 🎮",
+          "Play, I'll take a nap. {min} minutes, OK? 🐾",
+          "You earned {min} min! Prrr~"
+        ],
+        "deny_balance": [
+          "Meow, nope. You haven't earned any minutes today 📚",
+          "Study first! I eat first and nap later too 🐾",
+          "Try at least 15 minutes of study, then play. Prrr~"
+        ],
+        "deny_curfew": [
+          "It's night, meow. Games are asleep and you should be too 🌙",
+          "Curfew! Come to bed, I'll keep you warm 🐾",
+          "Tomorrow-you will thank you for sleeping. Prrr~ 💤"
+        ],
+        "kill_study": [
+          "Meow! We're studying, I closed the game 📚",
+          "Caught you 🐾 Study first!"
+        ],
+        "kill_project": [
+          "Meow, you're on a project! The game can wait 🛠",
+          "Project first, game later 🐾"
+        ],
+        "kill_balance": [
+          "Out of minutes, meow. I closed the game 🐾",
+          "Can't play without earned minutes. Study a bit and it's back~",
+          "Closed! Rules are rules, prrr~"
+        ],
+        "kill_curfew": [
+          "Curfew, meow! I closed the game, go to sleep 🌙",
+          "It's night. Game's gone, you're off to bed 💤🐾",
+          "A rested player is a better player. Night, meow~"
+        ],
+        "time_up": [
+          "Time's up! You kept to it, I'm proud of you 🐾",
+          "Game over, meow~ Stretch like a cat!",
+          "Done! Drink some water, I'll have my bowl 💧"
+        ],
+        "warn": [
+          "Meow, {min} min left~ Start wrapping up 🐾",
+          "{min} more minutes! No new matches, OK?",
+          "{min} min to go. Find a good spot to save~"
+        ],
+        "curfew_warn": [
+          "Curfew in {min} min, meow 🌙",
+          "Heads up, {min} minutes to curfew! Save your game 🐾",
+          "Curfew in {min} min. The cat bed is waiting 💤"
+        ],
+        "match_warn": [
+          "Curfew in {min} min, meow~ No new matches 🌙",
+          "Psst, {min} minutes to curfew. Finish this one and that's it 🐾",
+          "No new ranked games, curfew is in {min} min~"
+        ],
+        "presence": [
+          "Meow? Still there? 🐾",
+          "Paw tap~ Still studying?",
+          "Check-in! Click so I know you didn't fall asleep like me 💤"
+        ],
+        "override_ready": [
+          "Exception granted! {min} extra min, meow 🎮",
+          "OK, {min} minutes are yours. But study tomorrow, yeah? 🐾",
+          "Exception approved! {min} min. Prrr~"
+        ],
+        "deadline": [
+          "Meow! Time's up~ Are you in the middle of a match? 🐾",
+          "Stop! Still finishing? Click so I don't kick you out~",
+          "Time's up! If you're mid-match, you can finish it 🐾"
+        ],
+        "finish_done": [
+          "Match done! Great job closing it yourself 🐾",
+          "Match over, meow~ Break time.",
+          "Nice, you finished and closed it. Prrr~"
+        ],
+        "switched": [
+          "Meow, caught you 😼 I switched to Play, you have {min} min.",
+          "A game! I stopped the study timer and switched to Play. {min} min left 🐾",
+          "A break from work? I'm counting it as play, {min} min~"
         ]
       }
     }

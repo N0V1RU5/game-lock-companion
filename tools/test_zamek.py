@@ -232,8 +232,14 @@ check(not det.is_game("code.exe", r"C:\Users\x\AppData\Local\Programs\Microsoft 
 import json
 import i18n
 check(all(set(v) >= {"cs", "en"} for v in i18n.STR.values()), "všechny texty appky jsou CZ i EN")
-lines = json.load(open(ROOT / "personas.json", encoding="utf-8"))["miku"]["lines"]
+personas = json.load(open(ROOT / "personas.json", encoding="utf-8"))
+lines = personas["miku"]["lines"]
 check(set(lines["cs"]) == set(lines["en"]), "hlášky Miku mají CZ i EN")
+check(all(set(p["lines"]["cs"]) == set(p["lines"]["en"]) == set(lines["cs"]) for p in personas.values()),
+      "všichni maskoti mají všechny hlášky v CZ i EN")
+check(all((ROOT / p["images"] / f"{m}.png").exists() or (ROOT / p["images"] / f"{m}.gif").exists()
+          for p in personas.values() for m in ("happy", "study", "angry", "sleepy", "alert")),
+      "všichni maskoti mají obrázky všech 5 nálad")
 i18n.set_lang("en")
 g, c = new_gate("23:30")
 evs = g.tick(GAME)

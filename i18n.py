@@ -142,6 +142,7 @@ STR: dict[str, dict[str, str]] = {
     # ---------------------------------------------------------------- nastavení
     "set_title": {"cs": "Nastavení", "en": "Settings"},
     "set_lang": {"cs": "Jazyk", "en": "Language"},
+    "set_mascot": {"cs": "Maskot", "en": "Mascot"},
     "set_theme": {"cs": "Vzhled", "en": "Theme"},
     "theme_system": {"cs": "Podle Windows", "en": "Follow Windows"},
     "theme_dark": {"cs": "Tmavý", "en": "Dark"},

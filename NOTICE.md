@@ -1,6 +1,7 @@
 # Notice
 
-**Code** (everything except the character art) is under the [MIT License](LICENSE).
+**Code** and **Baldie / Naháč the sphynx cat** (`obrazky_nahac/`, original art made for this project)
+are under the [MIT License](LICENSE).
 
 **Character art** in `obrazky/` and docs screenshots: fan art of **Hatsune Miku**.
 Hatsune Miku is © Crypton Future Media, INC. – [piapro.net](https://piapro.net).

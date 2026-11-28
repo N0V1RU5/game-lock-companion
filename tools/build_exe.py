@@ -63,8 +63,9 @@ def main():
     for name in FILES + (["config.json"] if a.my_config else []):
         if (ROOT / name).exists():
             shutil.copy2(ROOT / name, target / name)
-    shutil.rmtree(target / "obrazky", ignore_errors=True)
-    shutil.copytree(ROOT / "obrazky", target / "obrazky", ignore=shutil.ignore_patterns("_zaloha"))
+    for folder in ("obrazky", "obrazky_nahac"):  # obrázky maskotů
+        shutil.rmtree(target / folder, ignore_errors=True)
+        shutil.copytree(ROOT / folder, target / folder, ignore=shutil.ignore_patterns("_zaloha"))
 
     tmpzip = zip_path.with_suffix(".tmp")
     with zipfile.ZipFile(tmpzip, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:

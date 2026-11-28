@@ -1,8 +1,8 @@
 # Game Lock Companion
 
 **Study first, then games.** A small app for Windows, macOS and Linux that won't let you play until you've studied.
-Every minute you study earns you play time. Miku keeps you company, cheers you on and closes
-games when time is up.
+Every minute you study earns you play time. A mascot keeps you company, cheers you on and closes
+games when time is up: Miku, or Baldie the sphynx cat.
 
 > **[Česky](README.cs.md)** · Idea & design: **[N0V1RU5](https://github.com/N0V1RU5)** · Open source (MIT)
 
@@ -126,9 +126,20 @@ Language, theme and games are in **Settings**. The rules are in `config.json`
 
 Restart the app after editing `config.json` (tray icon → quit in Task Manager → run again).
 
-## Your own character
+## Mascots
 
-Miku's lines are in `personas.json` (`cs` and `en`, `{min}` = minutes). Images are in `obrazky/`:
+Pick your mascot in **Settings**. The app takes the mascot's colour: Miku is teal, Baldie (Naháč in Czech)
+the sphynx cat is pink.
+
+<p>
+  <img src="docs/screenshots/main_nahac_en_light.png" width="300" alt="Baldie the sphynx cat, light theme">
+  <img src="docs/screenshots/main_nahac_cs_dark.png" width="300" alt="Naháč, dark theme, Czech">
+</p>
+
+### Your own character
+
+Each mascot in `personas.json` has a name, a colour (`accent`: `teal` or `pink`), an image folder and its
+lines (`cs` and `en`, `{min}` = minutes). Miku's images are in `obrazky/`, Baldie's in `obrazky_nahac/`:
 `happy`, `study`, `angry`, `sleepy`, `alert` as `.gif` (can be animated) or `.png`, around 100×100 px.
 `tools/import_obrazky.py` converts an Aseprite file, a sprite sheet or a folder of images into that format.
 
@@ -147,7 +158,7 @@ Windows, macOS and Linux, and a `v*` tag builds the three zips into the release.
 
 ## License
 
-Code: [MIT](LICENSE) © N0V1RU5. Miku art: non-commercial fan work, see [NOTICE](NOTICE.md).
+Code and Baldie the cat: [MIT](LICENSE) © N0V1RU5. Miku art: non-commercial fan work, see [NOTICE](NOTICE.md).
 
 If you feel gaming is taking over your life, talk to someone you trust or a counselling service. This app is a helper, not a cure.
 
