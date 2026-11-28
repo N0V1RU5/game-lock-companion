@@ -1,7 +1,7 @@
 # Herní zámek (Game Lock Companion)
 
 **Nejdřív učení, pak hry.** Malá appka pro Windows, macOS a Linux, která tě nepustí hrát, dokud se neučíš.
-Každá minuta učení ti vydělá čas na hraní. Maskot (Miku, nebo kočka sphynx Naháč) ti dělá společnost, fandí ti a zavře hru,
+Každá minuta učení ti vydělá čas na hraní. Maskot (Miku, nebo kočka sphynx Plešoun) ti dělá společnost, fandí ti a zavře hru,
 když čas dojde.
 
 > **[English](README.md)** · Nápad a návrh: **[N0V1RU5](https://github.com/N0V1RU5)** · Open source (MIT)
@@ -125,18 +125,18 @@ Po úpravě `config.json` appku restartuj (Správce úloh → ukončit → spust
 
 ## Maskoti
 
-Maskota si vybereš v **Nastavení**. Appka převezme jeho barvu: Miku je tyrkysová, kočka sphynx Naháč
+Maskota si vybereš v **Nastavení**. Appka převezme jeho barvu: Miku je tyrkysová, kočka sphynx Plešoun
 (anglicky Baldie) růžová.
 
 <p>
-  <img src="docs/screenshots/main_nahac_cs_dark.png" width="300" alt="Naháč, tmavý vzhled">
+  <img src="docs/screenshots/main_nahac_cs_dark.png" width="300" alt="Plešoun, tmavý vzhled">
   <img src="docs/screenshots/main_nahac_en_light.png" width="300" alt="Baldie, světlý vzhled, anglicky">
 </p>
 
 ### Vlastní postava
 
 Každý maskot v `personas.json` má jméno, barvu (`accent`: `teal` nebo `pink`), složku s obrázky a hlášky
-(`cs` a `en`, `{min}` = počet minut). Obrázky Miku jsou v `obrazky/`, Naháče v `obrazky_nahac/`:
+(`cs` a `en`, `{min}` = počet minut). Obrázky Miku jsou v `obrazky/`, Plešouna v `obrazky_nahac/`:
 `happy`, `study`, `angry`, `sleepy`, `alert` jako `.gif` (může být animovaný) nebo `.png`, kolem 100×100 px.
 `tools/import_obrazky.py` převede soubor z Aseprite, sprite sheet nebo složku obrázků do tohohle formátu.
 
@@ -155,7 +155,7 @@ macOS i Linuxu a tag `v*` sestaví do releasu všechny tři zipy.
 
 ## Licence
 
-Kód a kočka Naháč: [MIT](LICENSE) © N0V1RU5. Obrázky Miku: nekomerční fan art, viz [NOTICE](NOTICE.md).
+Kód a kočka Plešoun: [MIT](LICENSE) © N0V1RU5. Obrázky Miku: nekomerční fan art, viz [NOTICE](NOTICE.md).
 
 Když máš pocit, že ti hraní přerůstá přes hlavu, řekni to někomu, komu věříš, nebo zavolej
 na Linku první psychické pomoci **116 123** (zdarma, nonstop). Appka je pomocník, ne léčba.

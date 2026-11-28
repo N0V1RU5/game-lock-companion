@@ -128,12 +128,12 @@ Restart the app after editing `config.json` (tray icon → quit in Task Manager 
 
 ## Mascots
 
-Pick your mascot in **Settings**. The app takes the mascot's colour: Miku is teal, Baldie (Naháč in Czech)
+Pick your mascot in **Settings**. The app takes the mascot's colour: Miku is teal, Baldie (Plešoun in Czech)
 the sphynx cat is pink.
 
 <p>
   <img src="docs/screenshots/main_nahac_en_light.png" width="300" alt="Baldie the sphynx cat, light theme">
-  <img src="docs/screenshots/main_nahac_cs_dark.png" width="300" alt="Naháč, dark theme, Czech">
+  <img src="docs/screenshots/main_nahac_cs_dark.png" width="300" alt="Plešoun, dark theme, Czech">
 </p>
 
 ### Your own character

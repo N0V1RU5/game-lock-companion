@@ -1,6 +1,6 @@
 # Notice
 
-**Code** and **Baldie / Naháč the sphynx cat** (`obrazky_nahac/`, original art made for this project)
+**Code** and **Baldie / Plešoun the sphynx cat** (`obrazky_nahac/`, original art made for this project)
 are under the [MIT License](LICENSE).
 
 **Character art** in `obrazky/` and docs screenshots: fan art of **Hatsune Miku**.

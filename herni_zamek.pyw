@@ -18,7 +18,7 @@ import traceback
 import threading
 import tkinter as tk
 from datetime import datetime
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 
 from i18n import LANGS, T, get_lang, set_lang
 from zamek_core import (
@@ -829,6 +829,7 @@ class App:
             return
         cfg = self.gate.cfg
         w = tk.Toplevel(self.root, bg=BG)
+        w.withdraw()
         set_icon(w)
         self.settings_win = w
         w.title(T("set_title"))
@@ -839,55 +840,141 @@ class App:
             w.destroy()
 
         w.protocol("WM_DELETE_WINDOW", close)
-        tk.Frame(w, bg=TEAL, height=4).pack(fill="x")
-        body = tk.Frame(w, bg=BG)
-        body.pack(fill="both", expand=True, padx=16, pady=(8, 0))
 
-        def heading(text, info=None):
-            tk.Label(body, text=text, font=FONT_B, bg=BG, fg=FG).pack(anchor="w", pady=(10, 0))
+        # ---------------- moderní prvky: přepínač, segmenty, karty
+        def toggle(parent, var, text, bg=CARD):
+            row = tk.Frame(parent, bg=bg)
+            c = tk.Canvas(row, width=40, height=22, bg=bg, highlightthickness=0, cursor="hand2")
+            c.pack(side="left")
+            lbl = tk.Label(row, text=text, font=FONT, bg=bg, fg=FG, cursor="hand2", justify="left", wraplength=400)
+            lbl.pack(side="left", padx=(10, 0))
+
+            def draw():
+                c.delete("all")
+                col = TEAL_D if var.get() else DISABLED
+                c.create_oval(1, 1, 21, 21, fill=col, outline=col)
+                c.create_oval(18, 1, 38, 21, fill=col, outline=col)
+                c.create_rectangle(11, 1, 28, 21, fill=col, outline=col)
+                x = 19 if var.get() else 3
+                c.create_oval(x, 3, x + 16, 19, fill="#FFFFFF", outline="#FFFFFF")
+
+            def flip(_=None):
+                var.set(not var.get())
+                draw()
+
+            c.bind("<Button-1>", flip)
+            lbl.bind("<Button-1>", flip)
+            draw()
+            return row
+
+        def segmented(parent, var, options, bg=CARD):
+            row = tk.Frame(parent, bg=bg)
+            buttons = {}
+
+            def paint():
+                for v, b in buttons.items():
+                    sel = var.get() == v
+                    b._base_bg = TEAL_D if sel else CARD2
+                    b.config(bg=b._base_bg, fg="#FFFFFF" if sel else FG,
+                             activebackground=TEAL if sel else HOVER2, activeforeground="#FFFFFF" if sel else FG)
+
+            for v, label in options:
+                b = tk.Button(row, text=label, font=FONT_S, relief="flat", bd=0, cursor="hand2", padx=14, pady=6,
+                              command=lambda v=v: (var.set(v), paint()))
+                b.bind("<Enter>", lambda e, b=b: b.config(bg=TEAL if b._base_bg == TEAL_D else HOVER2))
+                b.bind("<Leave>", lambda e, b=b: b.config(bg=b._base_bg))
+                b.pack(side="left", padx=(0, 4))
+                buttons[v] = b
+            paint()
+            return row
+
+        def card(page, title, info=None):
+            box = tk.Frame(page, bg=CARD)
+            box.pack(fill="x", pady=(0, 10))
+            inner = tk.Frame(box, bg=CARD)
+            inner.pack(fill="x", padx=16, pady=12)
+            tk.Label(inner, text=title, font=FONT_B, bg=CARD, fg=FG).pack(anchor="w")
             if info:
-                tk.Label(body, text=info, font=FONT_S, bg=BG, fg=MUTED, wraplength=430,
-                         justify="left").pack(anchor="w")
+                tk.Label(inner, text=info, font=FONT_S, bg=CARD, fg=MUTED, wraplength=470,
+                         justify="left").pack(anchor="w", pady=(2, 0))
+            body = tk.Frame(inner, bg=CARD)
+            body.pack(fill="x", pady=(8, 0))
+            return body
 
-        def radios(var, options):
-            row = tk.Frame(body, bg=BG)
-            row.pack(anchor="w", pady=(2, 0))
-            for value, label in options:
-                tk.Radiobutton(row, text=label, value=value, variable=var, font=FONT, bg=BG, fg=FG,
-                               selectcolor=CARD, activebackground=BG, activeforeground=FG,
-                               highlightthickness=0).pack(side="left", padx=(0, 12))
+        def listbox(parent, height):
+            lb = tk.Listbox(parent, height=height, font=FONT_S, bg=BG, fg=FG, relief="flat", bd=0,
+                            selectbackground=TEAL_D, selectforeground="#FFFFFF", highlightthickness=0,
+                            activestyle="none")
+            lb.pack(fill="x")
+            return lb
 
+        def small_buttons(parent, items):
+            row = tk.Frame(parent, bg=CARD)
+            row.pack(anchor="w", pady=(8, 0))
+            for text, cmd in items:
+                flat_button(row, text, CARD2, HOVER2, cmd, font=FONT_S, padx=12, pady=4).pack(side="left", padx=(0, 6))
+
+        # ---------------- hodnoty
         lang = tk.StringVar(value=get_lang())
         theme = tk.StringVar(value=cfg.get("theme") or "system")
         mascot = tk.StringVar(value=self.persona.key)
-        heading(T("set_lang"))
-        radios(lang, list(LANGS.items()))
-        heading(T("set_mascot"))
-        radios(mascot, persona_names(load_json(HERE / "personas.json", {})))
-        heading(T("set_theme"))
-        radios(theme, [("system", T("theme_system")), ("dark", T("theme_dark")), ("light", T("theme_light"))])
-
-        def listbox(height=5):
-            lb = tk.Listbox(body, height=height, width=56, font=FONT_S, bg=CARD, fg=FG, relief="flat",
-                            selectbackground=TEAL_D, selectforeground="#FFFFFF", highlightthickness=1,
-                            highlightbackground=CARD2, activestyle="none")
-            lb.pack(fill="x", pady=(4, 0))
-            return lb
-
+        corner = tk.StringVar(value=cfg.get("toast_corner", "top-right"))
+        steam = tk.BooleanVar(value=bool(cfg.get("steam_auto", True)))
+        autostart = tk.BooleanVar(value=AUTOSTART_OK and autostart_enabled())
+        updates = tk.BooleanVar(value=bool(cfg.get("check_updates", True)))
         games = [("exe", e) for e in cfg.get("game_exe", [])] + [("dir", d) for d in cfg.get("game_roots", [])]
         white = list(cfg.get("whitelist_exe", []))
-        steam = tk.BooleanVar(value=bool(cfg.get("steam_auto", True)))
 
-        heading(T("set_games"), T("set_games_info"))
-        tk.Checkbutton(body, text=T("set_steam"), variable=steam, font=FONT, bg=BG, fg=FG, selectcolor=CARD,
-                       activebackground=BG, activeforeground=FG, highlightthickness=0).pack(anchor="w", pady=(4, 0))
-        lb_games = listbox()
+        # ---------------- hlavička a záložky
+        tk.Frame(w, bg=TEAL, height=4).pack(fill="x")
+        tk.Label(w, text=T("set_title"), font=FONT_BIG, bg=BG, fg=FG).pack(anchor="w", padx=22, pady=(14, 6))
+        tabs_row = tk.Frame(w, bg=BG)
+        tabs_row.pack(fill="x", padx=18)
+        tk.Frame(w, bg=CARD2, height=1).pack(fill="x", padx=22)
+        content = tk.Frame(w, bg=BG)
+        content.pack(fill="both", expand=True, padx=22, pady=(14, 0))
+        pages, tab_widgets = {}, {}
+
+        def show(name):
+            for n, pg in pages.items():
+                pg.pack_forget()
+                btn, line = tab_widgets[n]
+                btn.config(fg=FG if n == name else MUTED)
+                line.config(bg=TEAL if n == name else BG)
+            pages[name].pack(fill="both", expand=True)
+
+        for name, label in (("general", T("tab_general")), ("games", T("tab_games")),
+                            ("notices", T("tab_notices")), ("about", T("tab_about"))):
+            col = tk.Frame(tabs_row, bg=BG)
+            col.pack(side="left", padx=(4, 10))
+            b = tk.Button(col, text=label, font=FONT_B, bg=BG, fg=MUTED, relief="flat", bd=0, cursor="hand2",
+                          activebackground=BG, activeforeground=FG, padx=4, pady=6, command=lambda n=name: show(n))
+            b.pack()
+            line = tk.Frame(col, bg=BG, height=3)
+            line.pack(fill="x")
+            tab_widgets[name] = (b, line)
+            pages[name] = tk.Frame(content, bg=BG)
+
+        # ---------------- Obecné
+        pg = pages["general"]
+        segmented(card(pg, T("set_lang")), lang, list(LANGS.items())).pack(anchor="w")
+        segmented(card(pg, T("set_mascot")), mascot,
+                  persona_names(load_json(HERE / "personas.json", {}))).pack(anchor="w")
+        segmented(card(pg, T("set_theme")), theme,
+                  [("system", T("theme_system")), ("dark", T("theme_dark")), ("light", T("theme_light"))]).pack(anchor="w")
+        if AUTOSTART_OK:
+            toggle(card(pg, T("set_autostart_title")), autostart, T("set_autostart")).pack(anchor="w")
+
+        # ---------------- Hry
+        pg = pages["games"]
+        body = card(pg, T("set_games"), T("set_games_info"))
+        toggle(body, steam, T("set_steam")).pack(anchor="w", pady=(0, 8))
+        lb_games = listbox(body, 5)
 
         def show_games():
             lb_games.delete(0, "end")
             for kind, val in games:
-                icon = "🎮" if kind == "exe" else "📁"
-                lb_games.insert("end", f"{icon} {T('item_' + kind)}: {val}")
+                lb_games.insert("end", f"  {'🎮' if kind == 'exe' else '📁'}  {val}")
 
         def add_exe():
             path = filedialog.askopenfilename(parent=w, title=T("pick_exe"), filetypes=EXE_TYPES)
@@ -910,19 +997,17 @@ class App:
                 del games[i]
             show_games()
 
-        row = tk.Frame(body, bg=BG)
-        row.pack(anchor="w", pady=(6, 0))
-        for text, cmd in ((T("set_add_exe" if IS_WIN else "set_add_app"), add_exe), (T("set_add_dir"), add_dir), (T("set_remove"), remove_game)):
-            flat_button(row, text, CARD2, HOVER2, cmd, font=FONT_S, padx=10, pady=3).pack(side="left", padx=(0, 6))
+        small_buttons(body, ((T("set_add_exe" if IS_WIN else "set_add_app"), add_exe),
+                             (T("set_add_dir"), add_dir), (T("set_remove"), remove_game)))
         show_games()
 
-        heading(T("set_white"), T("set_white_info"))
-        lb_white = listbox(3)
+        body = card(pg, T("set_white"), T("set_white_info"))
+        lb_white = listbox(body, 3)
 
         def show_white():
             lb_white.delete(0, "end")
             for name in white:
-                lb_white.insert("end", f"✅ {name}")
+                lb_white.insert("end", f"  ✅  {name}")
 
         def add_white():
             path = filedialog.askopenfilename(parent=w, title=T("pick_white"), filetypes=EXE_TYPES)
@@ -936,37 +1021,31 @@ class App:
                 del white[i]
             show_white()
 
-        row = tk.Frame(body, bg=BG)
-        row.pack(anchor="w", pady=(6, 0))
-        for text, cmd in ((T("set_add_white" if IS_WIN else "set_add_app_white"), add_white), (T("set_remove"), remove_white)):
-            flat_button(row, text, CARD2, HOVER2, cmd, font=FONT_S, padx=10, pady=3).pack(side="left", padx=(0, 6))
+        small_buttons(body, ((T("set_add_white" if IS_WIN else "set_add_app_white"), add_white),
+                             (T("set_remove"), remove_white)))
         show_white()
 
-        heading(T("set_toast"), T("set_toast_info"))
-        corner = tk.StringVar(value=cfg.get("toast_corner", "top-right"))
-        radios(corner, [(c, T("corner_" + c)) for c in ("top-right", "top-left", "bottom-right")])
+        # ---------------- Upozornění
+        pg = pages["notices"]
+        segmented(card(pg, T("set_toast"), T("set_toast_info")), corner,
+                  [(c, T("corner_" + c)) for c in ("top-right", "top-left", "bottom-right")]).pack(anchor="w")
+        body = card(pg, T("set_rules"), T("set_rules_hint"))
+        flat_button(body, T("set_open_config"), CARD2, HOVER2, lambda: open_path(HERE / "config.json"),
+                    font=FONT_S, padx=12, pady=4).pack(anchor="w")
 
-        autostart = tk.BooleanVar(value=AUTOSTART_OK and autostart_enabled())
-        if AUTOSTART_OK:
-            tk.Checkbutton(body, text=T("set_autostart"), variable=autostart, font=FONT, bg=BG, fg=FG,
-                           selectcolor=CARD, activebackground=BG, activeforeground=FG,
-                           highlightthickness=0).pack(anchor="w", pady=(12, 0))
-        updates = tk.BooleanVar(value=bool(cfg.get("check_updates", True)))
-        row = tk.Frame(body, bg=BG)
-        row.pack(fill="x", pady=(6, 0))
-        tk.Checkbutton(row, text=T("set_updates"), variable=updates, font=FONT, bg=BG, fg=FG, selectcolor=CARD,
-                       activebackground=BG, activeforeground=FG, highlightthickness=0).pack(side="left")
+        # ---------------- O appce
+        pg = pages["about"]
+        body = card(pg, T("app_title"), T("set_version", v=VERSION))
+        toggle(body, updates, T("set_updates")).pack(anchor="w")
+        row = tk.Frame(body, bg=CARD)
+        row.pack(anchor="w", pady=(10, 0))
         flat_button(row, T("upd_check"), CARD2, HOVER2, lambda: self.check_updates(manual=True), font=FONT_S,
-                    padx=10, pady=3).pack(side="right")
-        tk.Label(body, text=T("set_version", v=VERSION), font=FONT_S, bg=BG, fg=MUTED).pack(anchor="w")
+                    padx=12, pady=4).pack(side="left", padx=(0, 6))
+        flat_button(row, "GitHub", CARD2, HOVER2,
+                    lambda: open_path("https://github.com/N0V1RU5/game-lock-companion"), font=FONT_S,
+                    padx=12, pady=4).pack(side="left")
 
-        row = tk.Frame(body, bg=BG)
-        row.pack(fill="x", pady=(14, 0))
-        tk.Label(row, text=T("set_rules_hint"), font=FONT_S, bg=BG, fg=MUTED, wraplength=280,
-                 justify="left").pack(side="left")
-        flat_button(row, T("set_open_config"), CARD2, HOVER2, lambda: open_path(HERE / "config.json"),
-                    font=FONT_S, padx=10, pady=3).pack(side="right")
-
+        # ---------------- patička: vždy vidět
         def save():
             changes = {
                 "language": lang.get(), "theme": theme.get(), "steam_auto": steam.get(),
@@ -989,16 +1068,33 @@ class App:
                 except Exception:
                     log_error(traceback.format_exc())
             close()
-            if need_restart and messagebox.askyesno(T("set_title"), T("set_restart"), parent=self.root):
+            if need_restart:  # jazyk, maskot a vzhled se načtou při startu
                 self.restart = True
                 self.root.destroy()
 
-        btns = tk.Frame(w, bg=BG)
-        btns.pack(fill="x", padx=16, pady=14)
-        flat_button(btns, T("set_save"), TEAL_D, TEAL, save, padx=16, pady=5).pack(side="right")
-        flat_button(btns, T("set_cancel"), CARD2, HOVER2, close, padx=12, pady=5).pack(side="right", padx=8)
+        tk.Frame(w, bg=CARD2, height=1).pack(fill="x", side="bottom")
+        foot = tk.Frame(w, bg=BG)
+        foot.pack(fill="x", side="bottom", padx=22, pady=14, before=content)
+        tk.Label(foot, text=T("set_restart_hint"), font=FONT_S, bg=BG, fg=MUTED, wraplength=280,
+                 justify="left").pack(side="left")
+        flat_button(foot, T("set_save"), TEAL_D, TEAL, save, padx=18, pady=6).pack(side="right")
+        flat_button(foot, T("set_cancel"), CARD2, HOVER2, close, padx=14, pady=6).pack(side="right", padx=8)
+
+        # ---------------- velikost: podle nejvyšší záložky, nikdy víc než obrazovka; na střed
         w.update_idletasks()
-        w.geometry(f"+{self.root.winfo_rootx() + 10}+{self.root.winfo_rooty() + 20}")
+        heights = []
+        for n in pages:
+            show(n)
+            w.update_idletasks()
+            heights.append(w.winfo_reqheight())
+        show("general")
+        width = 580
+        height = min(max(heights), w.winfo_screenheight() - 120)
+        x = max(0, (w.winfo_screenwidth() - width) // 2)
+        y = max(10, (w.winfo_screenheight() - height) // 2 - 40)
+        w.geometry(f"{width}x{height}+{x}+{y}")
+        w.deiconify()
+        set_icon(w)  # tmavý titulek jde nastavit až u zobrazeného okna
 
     # ------------------------------------------------------------------ popupy
     def _center(self, w: tk.Toplevel, y_frac: float = 1 / 3):
