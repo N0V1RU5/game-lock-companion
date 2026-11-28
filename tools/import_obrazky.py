@@ -32,7 +32,7 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-IMG = ROOT / "obrazky"
+IMG = ROOT / "assets" / "mascots" / "miku"
 KAMOS_DIR = ROOT / "kamos" / "HerniZamek"
 KAMOS_ZIP = ROOT / "kamos" / "HerniZamek.zip"
 MOODS = ["happy", "study", "angry", "sleepy", "alert"]

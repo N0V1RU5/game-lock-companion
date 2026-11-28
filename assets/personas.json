@@ -4,7 +4,7 @@
     "emoji": "🎵",
     "color": "#39C5BB",
     "accent": "teal",
-    "images": "obrazky",
+    "images": "assets/mascots/miku",
     "lines": {
       "cs": {
         "greet": [
@@ -138,6 +138,26 @@
           "Nachytala jsem tě 😄 Hraješ? Tak jsem přepnula na Hraní, máš {min} min~",
           "Ha, hra! Učení jsem stopla a přepnula na Hraní. Zbývá ti {min} min 🎮",
           "Aha, pauza od práce? Počítám to jako hraní – {min} min 💙"
+        ],
+        "other_start": [
+          "Dobře, dáme si pauzu~ Až budeš chtít, jsem tu 🎵",
+          "Něco jiného? Klidně, nic se nepočítá 💙",
+          "Odpočinek je taky důležitej~ Ozvi se, až budeš chtít hrát nebo se učit!"
+        ],
+        "open_study": [
+          "Jsem tu! Učení pořád běží, jen tak dál 📚",
+          "Ahoj~ Ještě se učíš? Držím palce 💙",
+          "Kouknul ses na mě? Učení běží, nevzdávej to 🎵"
+        ],
+        "open_project": [
+          "Projekt pořád běží~ Jak to jde? 🛠",
+          "Ahoj! Tvoříš dál? Fandím ti 💙",
+          "Jsem tu~ Projekt se počítá, jen tak dál 🎵"
+        ],
+        "open_play": [
+          "Hraješ? Užij si to~ Hlídám ti čas 🎮",
+          "Ahoj! Ještě ti zbývá čas, hraj v klidu 💙",
+          "Jak to jde? Já ti zatím fandím 🎵"
         ]
       },
       "en": {
@@ -272,11 +292,31 @@
           "Caught you 😄 Playing? I switched to Play, you have {min} min~",
           "Ha, a game! I stopped the study timer and switched to Play. {min} min left 🎮",
           "Oh, a break from work? I'm counting it as play – {min} min 💙"
+        ],
+        "other_start": [
+          "OK, let's take a break~ I'm here when you need me 🎵",
+          "Something else? Sure, nothing is counted 💙",
+          "Rest matters too~ Let me know when you want to study or play!"
+        ],
+        "open_study": [
+          "I'm here! Study is still running, keep going 📚",
+          "Hi~ Still studying? Fingers crossed 💙",
+          "Checking on me? Study is running, don't give up 🎵"
+        ],
+        "open_project": [
+          "Your project is still running~ How's it going? 🛠",
+          "Hi! Still building? I'm cheering for you 💙",
+          "I'm here~ The project counts, keep going 🎵"
+        ],
+        "open_play": [
+          "Playing? Enjoy~ I'm keeping track of time 🎮",
+          "Hi! You still have time, play in peace 💙",
+          "How's it going? I'm rooting for you 🎵"
         ]
       }
     }
   },
-  "nahac": {
+  "plesoun": {
     "name": {
       "cs": "Plešoun",
       "en": "Baldie"
@@ -284,7 +324,7 @@
     "emoji": "🐾",
     "color": "#EC6FA8",
     "accent": "pink",
-    "images": "obrazky_nahac",
+    "images": "assets/mascots/plesoun",
     "lines": {
       "cs": {
         "greet": [
@@ -379,6 +419,26 @@
           "Mňau, chytil jsem tě 😼 Přepnul jsem na Hraní, máš {min} min.",
           "Hra! Učení jsem stopnul a přepnul na Hraní. Zbývá ti {min} min 🐾",
           "Pauza od práce? Počítám to jako hraní, {min} min~"
+        ],
+        "other_start": [
+          "Mňau, pauza! Jdu si zdřímnout 🐾",
+          "Něco jiného? Klidně, nic se nepočítá. Prrr~",
+          "Odpočinek je důležitej, to já vím nejlíp 💤"
+        ],
+        "open_study": [
+          "Mňau? Učení pořád běží, jen tak dál 📚",
+          "Ťuk tlapkou~ Ještě se učíš? 🐾",
+          "Prrr~ Učení se počítá, nevzdávej to!"
+        ],
+        "open_project": [
+          "Mňau, projekt běží~ Jak to jde? 🛠",
+          "Tvoříš dál? Koukám velkýma očima 👀",
+          "Projekt se počítá, prrr~ 🐾"
+        ],
+        "open_play": [
+          "Hraješ? Mňau, užij si to 🎮",
+          "Ještě ti zbývá čas, hraj v klidu 🐾",
+          "Jak to jde? Já si zatím lehnu vedle 💤"
         ]
       },
       "en": {
@@ -474,6 +534,26 @@
           "Meow, caught you 😼 I switched to Play, you have {min} min.",
           "A game! I stopped the study timer and switched to Play. {min} min left 🐾",
           "A break from work? I'm counting it as play, {min} min~"
+        ],
+        "other_start": [
+          "Meow, break time! I'm off for a nap 🐾",
+          "Something else? Sure, nothing is counted. Prrr~",
+          "Rest is important, I know that best 💤"
+        ],
+        "open_study": [
+          "Meow? Study is still running, keep going 📚",
+          "Paw tap~ Still studying? 🐾",
+          "Prrr~ Study counts, don't give up!"
+        ],
+        "open_project": [
+          "Meow, your project is running~ How's it going? 🛠",
+          "Still building? I'm watching with my big eyes 👀",
+          "The project counts, prrr~ 🐾"
+        ],
+        "open_play": [
+          "Playing? Meow, enjoy 🎮",
+          "You still have time, play in peace 🐾",
+          "How's it going? I'll lie down next to you 💤"
         ]
       }
     }

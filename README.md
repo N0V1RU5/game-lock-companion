@@ -51,7 +51,7 @@ always kill it in Task Manager. But it adds just enough friction to make you stu
 
 From 1.2.0 on, the app tells you when a new version is out (once a day, can be turned off in Settings) and
 **Update** does the rest: it downloads the new version, closes for a moment and starts again. Your
-`config.json`, `data.json`, stats and the `obrazky/` folder are kept. No uninstalling needed.
+`config.json`, `data.json` and stats are kept. No uninstalling needed.
 
 Coming from 1.0 or 1.1: close the app (Task Manager), unzip the new version **over the old folder** and run it.
 Your settings and data stay, because the zip doesn't contain them.
@@ -105,7 +105,7 @@ window, and put a shortcut to `herni_zamek.pyw` into `shell:startup` to start it
 ## Settings
 
 Language, theme and games are in **Settings**. The rules are in `config.json`
-(created next to the app on first start, defaults in `config.default.json`):
+(created next to the app on first start, defaults in `assets/config.default.json`):
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -128,33 +128,47 @@ Restart the app after editing `config.json` (tray icon → quit in Task Manager 
 
 ## Mascots
 
-Pick your mascot in **Settings**. The app takes the mascot's colour: Miku is teal, Baldie (Plešoun in Czech)
-the sphynx cat is pink.
+Two mascots: Miku and Baldie (Plešoun in Czech), a sphynx cat. In **Settings** you pick your favourites; with
+more than one, they take turns at random, each with their own lines and pictures. The app colour is separate:
+teal (Miku) or pink (Baldie). Every time you open the window, the mascot greets you with a fresh line that
+fits what you're doing.
 
 <p>
-  <img src="docs/screenshots/main_nahac_en_light.png" width="300" alt="Baldie the sphynx cat, light theme">
-  <img src="docs/screenshots/main_nahac_cs_dark.png" width="300" alt="Plešoun, dark theme, Czech">
+  <img src="docs/screenshots/main_plesoun_en_light.png" width="300" alt="Baldie the sphynx cat, light theme">
+  <img src="docs/screenshots/main_plesoun_cs_dark.png" width="300" alt="Plešoun, dark theme, Czech">
 </p>
 
 ### Your own character
 
-Each mascot in `personas.json` has a name, a colour (`accent`: `teal` or `pink`), an image folder and its
-lines (`cs` and `en`, `{min}` = minutes). Miku's images are in `obrazky/`, Baldie's in `obrazky_nahac/`:
+Each mascot in `assets/personas.json` has a name, a colour (`accent`: `teal` or `pink`), an image folder and
+its lines (`cs` and `en`, `{min}` = minutes). Images are in `assets/mascots/<name>/`:
 `happy`, `study`, `angry`, `sleepy`, `alert` as `.gif` (can be animated) or `.png`, around 100×100 px.
 `tools/import_obrazky.py` converts an Aseprite file, a sprite sheet or a folder of images into that format.
 
 ## Development
 
 ```bash
-python tools/test_zamek.py          # rules tests
+python tests/test_rules.py          # rules tests
 python herni_zamek.pyw --selftest   # opens the windows once and exits (0 = OK)
 python tools/screenshots.py         # README screenshots (Windows)
 python tools/build_exe.py           # app + zip into dist/ for the current system (needs pyinstaller)
 ```
 
-`zamek_core.py` has the rules (no GUI), `herni_zamek.pyw` the window and tray icon, `win_tray.py` the
-Windows tray icon (plain Win32 API, no extra libraries), `i18n.py` the texts. GitHub Actions run the tests on
-Windows, macOS and Linux, and a `v*` tag builds the three zips into the release.
+```text
+herni_zamek.pyw      entry point
+gamelock/
+  core.py            rules: time, balance, curfew, exceptions, game detection (no GUI)
+  app.py             window, settings, notices, tray icon
+  i18n.py            Czech and English texts
+  updater.py         one-click updates from GitHub Releases
+  win_tray.py        Windows tray icon (plain Win32 API, no extra libraries)
+assets/              default config, mascot lines (personas.json), mascot images, icon
+tests/               rules tests
+tools/               build, screenshots, image import
+docs/screenshots/    README images
+```
+
+GitHub Actions run the tests on Windows, macOS and Linux, and a `v*` tag builds the three zips into the release.
 
 ## License
 

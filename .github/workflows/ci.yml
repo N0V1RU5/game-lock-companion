@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: python -m pip install psutil pystray pillow
       - name: Rules tests
-        run: python tools/test_zamek.py
+        run: python tests/test_rules.py
       - name: GUI self-test (Linux)
         if: runner.os == 'Linux'
         run: |

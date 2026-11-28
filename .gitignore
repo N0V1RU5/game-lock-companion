@@ -14,4 +14,4 @@ __pycache__/
 # local only
 kamos/
 tools/kresleni/
-obrazky/_zaloha/
+**/_zaloha/

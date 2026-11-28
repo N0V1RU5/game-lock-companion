@@ -1,6 +1,6 @@
 """Aktualizace z GitHub Releases: najde novější verzi, stáhne zip a přepíše program.
 
-Nastavení (config.json), data, statistiky a obrázky v obrazky/ zůstanou.
+Nastavení (config.json), data a statistiky zůstanou.
 Stahuje přes curl (je ve Windows 10/11, macOS i Linuxu), takže build nemusí obsahovat OpenSSL.
 
 Postup: stažená nová verze se spustí z dočasné složky s --apply-update <stará exe> <pid>,
@@ -23,7 +23,8 @@ API = f"https://api.github.com/repos/{REPO}/releases/latest"
 PLATFORM = {"win32": "windows", "darwin": "macos"}.get(sys.platform, "linux")
 ASSET = f"GameLockCompanion-{PLATFORM}.zip"
 # co se při aktualizaci nikdy nepřepíše (tvoje věci)
-KEEP = {"config.json", "data.json", "data_test.json", "stats.xlsx", "stats_test.xlsx", "errors.log", "obrazky"}
+KEEP = {"config.json", "data.json", "data_test.json", "stats.xlsx", "stats_test.xlsx", "errors.log",
+        "obrazky"}  # obrazky/ = vlastní obrázky ze starších verzí
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 

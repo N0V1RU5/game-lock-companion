@@ -17,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SKIP = {"data.json", "data_test.json", "stats.xlsx", "stats_test.xlsx", "errors.log"}
-FILES = ["config.default.json", "personas.json", "icon.ico", "LICENSE", "NOTICE.md", "README.md", "README.cs.md"]
+FILES = ["LICENSE", "NOTICE.md", "README.md", "README.cs.md"]
 PLATFORM = {"win32": "windows", "darwin": "macos"}.get(sys.platform, "linux")
 
 # Modules the app never uses. Leaving them out saves ~20 MB (OpenSSL alone is ~7 MB).
@@ -49,7 +49,7 @@ def main():
                "--name", a.name, "--distpath", str(tmp / "dist"), "--workpath", str(tmp / "build"),
                "--specpath", str(tmp)]
         if PLATFORM != "linux":
-            cmd += ["--icon", str(ROOT / "icon.ico")]
+            cmd += ["--icon", str(ROOT / "assets" / "icon.ico")]
         for m in EXCLUDE:
             cmd += ["--exclude-module", m]
         for m in HIDDEN:
@@ -63,9 +63,8 @@ def main():
     for name in FILES + (["config.json"] if a.my_config else []):
         if (ROOT / name).exists():
             shutil.copy2(ROOT / name, target / name)
-    for folder in ("obrazky", "obrazky_nahac"):  # obrázky maskotů
-        shutil.rmtree(target / folder, ignore_errors=True)
-        shutil.copytree(ROOT / folder, target / folder, ignore=shutil.ignore_patterns("_zaloha"))
+    shutil.rmtree(target / "assets", ignore_errors=True)  # nastavení, hlášky, ikona, maskoti
+    shutil.copytree(ROOT / "assets", target / "assets", ignore=shutil.ignore_patterns("_zaloha"))
 
     tmpzip = zip_path.with_suffix(".tmp")
     with zipfile.ZipFile(tmpzip, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:

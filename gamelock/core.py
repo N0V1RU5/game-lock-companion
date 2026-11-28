@@ -1,6 +1,6 @@
 """Logika herního zámku: čas, zůstatek, večerka, výjimky, hledání her.
 
-Bez GUI, aby šla testovat samostatně (viz test_zamek.py).
+Bez GUI, aby šla testovat samostatně (viz tests/test_rules.py).
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from i18n import T
+from .i18n import T
 
 try:
     import psutil
@@ -22,13 +22,14 @@ except ImportError:  # appka bez psutil hry nehlídá, ale nespadne
 
 import sys
 
-VERSION = "1.4.1"  # musí odpovídat tagu releasu, podle něj se hledají aktualizace
+VERSION = "1.5.0"  # musí odpovídat tagu releasu, podle něj se hledají aktualizace
 
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"
 
 # U .exe (PyInstaller) leží config a data vedle exe, ne v dočasné složce.
-HERE = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
+HERE = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent
+ASSETS = HERE / "assets"  # výchozí nastavení, hlášky, ikona, obrázky maskotů
 
 MODE_STUDY = "uceni"
 MODE_PLAY = "hrani"
@@ -96,7 +97,7 @@ def save_json(path: Path, data):
 
 def load_config() -> dict:
     """config.default.json (součást appky) + config.json (tvoje úpravy). Chybějící config.json se vytvoří."""
-    default = load_json(HERE / "config.default.json", {})
+    default = load_json(ASSETS / "config.default.json", {})
     user_path = HERE / "config.json"
     if not user_path.exists() and default:
         save_json(user_path, default)

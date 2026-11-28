@@ -1,4 +1,4 @@
-"""Testy pravidel. Spuštění: python tools/test_zamek.py"""
+"""Testy pravidel. Spuštění: python tests/test_rules.py"""
 import subprocess
 import sys
 import tempfile
@@ -10,10 +10,10 @@ ROOT = Path(__file__).resolve().parent.parent
 if hasattr(sys.stdout, "reconfigure"):  # české výpisy i v konzoli bez UTF-8 (CI na Windows)
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(ROOT))
-from zamek_core import (MODE_PLAY, MODE_STUDY, GameDetector, Gate, ManualClock,
+from gamelock.core import (MODE_PLAY, MODE_STUDY, GameDetector, Gate, ManualClock,
                         kill_processes, load_json)
 
-CFG = load_json(ROOT / "config.default.json", {})
+CFG = load_json(ROOT / "assets" / "config.default.json", {})
 # pevná pravidla pro testy (nezávisle na tom, co si nastavíš v configu)
 CFG.update({"play_per_study": 1.0, "kickstart_min": 30, "kickstart_multiplier": 2.0,
             "override_wait_min": 15, "override_bonus_min": 60, "override_max_per_day": 2,
@@ -230,9 +230,9 @@ check(not det.is_game("code.exe", r"C:\Users\x\AppData\Local\Programs\Microsoft 
 
 # --- jazyky: každý text je česky i anglicky, hlášky Miku mají v obou jazycích stejné klíče
 import json
-import i18n
+from gamelock import i18n
 check(all(set(v) >= {"cs", "en"} for v in i18n.STR.values()), "všechny texty appky jsou CZ i EN")
-personas = json.load(open(ROOT / "personas.json", encoding="utf-8"))
+personas = json.load(open(ROOT / "assets" / "personas.json", encoding="utf-8"))
 lines = personas["miku"]["lines"]
 check(set(lines["cs"]) == set(lines["en"]), "hlášky Miku mají CZ i EN")
 check(all(set(p["lines"]["cs"]) == set(p["lines"]["en"]) == set(lines["cs"]) for p in personas.values()),
@@ -248,7 +248,7 @@ check(g.stats_rows()[0][0] == "Date", "anglicky: statistiky mají anglickou hlav
 i18n.set_lang("cs")
 
 # --- macOS a Linux (logika jde testovat na každém systému)
-import zamek_core
+import gamelock.core as zamek_core
 check(det.is_game("Celeste", "/Users/x/Library/Application Support/Steam/steamapps/common/Celeste/Celeste.app/Contents/MacOS/Celeste")
       is False, "macOS: cesta mimo hlídané složky není hra")
 mac = GameDetector.from_config(dict(DET_CFG, game_roots=["/Users/x/Library/Application Support/Steam/steamapps/common"],
@@ -294,7 +294,7 @@ g.save()
 check(g.data_path.stat().st_mtime_ns != t0, "po změně se data zapíšou")
 
 # --- projekty: 3 min projektu = 1 min hraní, hry zavřené, kontrola přítomnosti, statistiky
-from zamek_core import MODE_PROJECT
+from gamelock.core import MODE_PROJECT
 g, c = new_gate()
 g.cfg = dict(CFG, play_per_project=1 / 3)
 check(g.set_mode(MODE_PROJECT) is None, "režim Projekty jde zapnout i bez času na hraní")
@@ -322,12 +322,20 @@ g3.today()["study_sec"] = 30 * 60
 g3.today()["project_sec"] = 30 * 60
 check(abs(g3.balance_sec() - (60 + 10) * 60) < 1, "učení (rozjezd 2:1 v testu) a projekty se sčítají")
 
+# --- oblíbení maskoti (střídají se); starý config z 1.4.x s "nahac"
+from gamelock.app import favorite_keys
+check(favorite_keys({"persona": "nahac"}, personas) == ["plesoun"], "starý config (persona nahac) -> Plešoun")
+check(favorite_keys({"persona": "miku", "mascots": ["miku", "plesoun"]}, personas) == ["miku", "plesoun"],
+      "oblíbení maskoti ze Nastavení")
+check(favorite_keys({}, personas) == ["miku"], "bez nastavení je maskot Miku")
+check(favorite_keys({"mascots": ["neexistuje"]}, personas) == ["miku"], "neznámý maskot se ignoruje")
+
 # --- aktualizace: porovnání verzí
-import updater
+from gamelock import updater
 check(updater.is_newer("v1.2.0", "1.1.0") and updater.is_newer("v1.10.0", "1.9.3"), "novější verze se pozná")
 check(not updater.is_newer("v1.1.0", "1.2.0") and not updater.is_newer("v1.2.0", "1.2.0"), "stejná/starší verze není aktualizace")
-check(updater.ASSET.startswith("GameLockCompanion-") and "config.json" in updater.KEEP and "obrazky" in updater.KEEP,
-      "aktualizace nepřepíše nastavení, data ani obrázky")
+check(updater.ASSET.startswith("GameLockCompanion-") and "config.json" in updater.KEEP and "data.json" in updater.KEEP,
+      "aktualizace nepřepíše nastavení ani data")
 
 # --- skutečné zavření procesu (falešná hra = náš Python s sleep, zabíjí se jen jeho PID)
 import psutil

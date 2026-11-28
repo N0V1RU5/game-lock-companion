@@ -18,7 +18,7 @@ OUT = ROOT / "docs" / "screenshots"
 SHOTS = [
     ("en", "dark", "main"), ("en", "light", "main"), ("cs", "dark", "main"), ("cs", "light", "main"),
     ("en", "dark", "finish"), ("en", "light", "settings"), ("en", "dark", "first"),
-    ("cs", "dark", "main", "nahac"), ("en", "light", "main", "nahac"),
+    ("cs", "dark", "main", "plesoun"), ("en", "light", "main", "plesoun"),
 ]
 
 
@@ -34,14 +34,12 @@ def window_png(win, name):
 def one(lang, theme, what, persona="miku"):
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
     sys.path.insert(0, str(ROOT))
-    loader = importlib.machinery.SourceFileLoader("hz", str(ROOT / "herni_zamek.pyw"))
-    hz = importlib.util.module_from_spec(importlib.util.spec_from_loader("hz", loader))
-    loader.exec_module(hz)
-    import i18n
-    from zamek_core import MODE_PLAY, Clock, Gate, load_json
+    import gamelock.app as hz
+    from gamelock import i18n
+    from gamelock.core import MODE_PLAY, Clock, Gate, load_json
 
     i18n.set_lang(lang)
-    personas = load_json(ROOT / "personas.json", {})
+    personas = load_json(ROOT / "assets" / "personas.json", {})
     hz.apply_theme(theme, personas.get(persona, {}).get("accent", "teal"))
     hz.TRAY_OK = False  # bez ikony u hodin
     root = hz.tk.Tk()
@@ -51,7 +49,7 @@ def one(lang, theme, what, persona="miku"):
         hz.choose_language(root)
         return
 
-    cfg = load_json(ROOT / "config.default.json", {})
+    cfg = load_json(ROOT / "assets" / "config.default.json", {})
     cfg.update(language=lang, theme=theme)
     gate = Gate(cfg, Path(tempfile.mkdtemp()) / "data.json",
                 Clock(fake_start=datetime.now().replace(hour=21, minute=12, second=0)))
@@ -73,7 +71,7 @@ def one(lang, theme, what, persona="miku"):
             app.refresh()
             window_png(root, name)
         elif what == "finish":
-            from zamek_core import Event
+            from gamelock.core import Event
             gate.deadline_at = gate.clock.now().replace(hour=23, minute=59)
             ev = Event("deadline", i18n.T("kill_curfew", **gate.curfew_times()), [(1, "game.exe")],
                        key="kill_curfew", minutes=20)

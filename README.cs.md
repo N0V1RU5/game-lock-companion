@@ -49,7 +49,7 @@ vypneš vždycky. Ale přidá přesně tolik tření, abys šel nejdřív dělat
 
 Od verze 1.2.0 ti appka sama řekne, že je venku nová verze (1× denně, jde vypnout v Nastavení), a tlačítko
 **Aktualizovat** udělá zbytek: stáhne novou verzi, na chvilku se zavře a znovu spustí. `config.json`,
-`data.json`, statistiky i složka `obrazky/` zůstanou. Nic se neodinstalovává.
+`data.json` i statistiky zůstanou. Nic se neodinstalovává.
 
 Z verze 1.0 nebo 1.1: zavři appku (Správce úloh), rozbal novou verzi **přes starou složku** a spusť ji.
 Nastavení i data zůstanou, protože v zipu nejsou.
@@ -102,7 +102,7 @@ Na Linuxu může být potřeba doinstalovat Tk: `sudo apt install python3-tk`. N
 ## Nastavení
 
 Jazyk, vzhled a hry jsou v **Nastavení**. Pravidla jsou v `config.json`
-(vytvoří se vedle appky při prvním spuštění, výchozí hodnoty jsou v `config.default.json`):
+(vytvoří se vedle appky při prvním spuštění, výchozí hodnoty jsou v `assets/config.default.json`):
 
 | Klíč | Výchozí | Význam |
 |---|---|---|
@@ -125,33 +125,47 @@ Po úpravě `config.json` appku restartuj (Správce úloh → ukončit → spust
 
 ## Maskoti
 
-Maskota si vybereš v **Nastavení**. Appka převezme jeho barvu: Miku je tyrkysová, kočka sphynx Plešoun
-(anglicky Baldie) růžová.
+Jsou dva maskoti: Miku a kočka sphynx Plešoun (anglicky Baldie). V **Nastavení** si vybereš oblíbené;
+když jich zapneš víc, střídají se náhodně a každý mluví svými hláškami a má své obrázky. Barvu appky volíš
+zvlášť: tyrkysová (Miku) nebo růžová (Plešoun). Při každém otevření okna tě maskot přivítá novou hláškou podle
+toho, co zrovna děláš.
 
 <p>
-  <img src="docs/screenshots/main_nahac_cs_dark.png" width="300" alt="Plešoun, tmavý vzhled">
-  <img src="docs/screenshots/main_nahac_en_light.png" width="300" alt="Baldie, světlý vzhled, anglicky">
+  <img src="docs/screenshots/main_plesoun_cs_dark.png" width="300" alt="Plešoun, tmavý vzhled">
+  <img src="docs/screenshots/main_plesoun_en_light.png" width="300" alt="Baldie, světlý vzhled, anglicky">
 </p>
 
 ### Vlastní postava
 
-Každý maskot v `personas.json` má jméno, barvu (`accent`: `teal` nebo `pink`), složku s obrázky a hlášky
-(`cs` a `en`, `{min}` = počet minut). Obrázky Miku jsou v `obrazky/`, Plešouna v `obrazky_nahac/`:
+Každý maskot v `assets/personas.json` má jméno, barvu (`accent`: `teal` nebo `pink`), složku s obrázky a
+hlášky (`cs` a `en`, `{min}` = počet minut). Obrázky jsou v `assets/mascots/<jméno>/`:
 `happy`, `study`, `angry`, `sleepy`, `alert` jako `.gif` (může být animovaný) nebo `.png`, kolem 100×100 px.
 `tools/import_obrazky.py` převede soubor z Aseprite, sprite sheet nebo složku obrázků do tohohle formátu.
 
 ## Vývoj
 
 ```bash
-python tools/test_zamek.py          # testy pravidel
+python tests/test_rules.py          # testy pravidel
 python herni_zamek.pyw --selftest   # jednou otevře okna a skončí (0 = v pořádku)
 python tools/screenshots.py         # screenshoty do README (Windows)
 python tools/build_exe.py           # appka + zip do dist/ pro aktuální systém (potřebuje pyinstaller)
 ```
 
-`zamek_core.py` jsou pravidla (bez GUI), `herni_zamek.pyw` okno a ikona u hodin, `win_tray.py` ikona u hodin
-na Windows (čisté Win32 API, bez dalších knihoven), `i18n.py` texty. GitHub Actions spouští testy na Windows,
-macOS i Linuxu a tag `v*` sestaví do releasu všechny tři zipy.
+```text
+herni_zamek.pyw      spouštěcí soubor
+gamelock/
+  core.py            pravidla: čas, zůstatek, večerka, výjimky, hledání her (bez GUI)
+  app.py             okno, nastavení, upozornění, ikona u hodin
+  i18n.py            české a anglické texty
+  updater.py         aktualizace jedním kliknutím z GitHub Releases
+  win_tray.py        ikona u hodin na Windows (čisté Win32 API, bez dalších knihoven)
+assets/              výchozí nastavení, hlášky maskotů (personas.json), obrázky maskotů, ikona
+tests/               testy pravidel
+tools/               build, screenshoty, import obrázků
+docs/screenshots/    obrázky do README
+```
+
+GitHub Actions spouští testy na Windows, macOS i Linuxu a tag `v*` sestaví do releasu všechny tři zipy.
 
 ## Licence
 
